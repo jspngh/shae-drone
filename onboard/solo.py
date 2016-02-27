@@ -182,5 +182,7 @@ class Solo:
         gmbl = self.vehicle.gimbal
         while gmbl.pitch != pitch:
             gmbl.rotate(pitch, roll, yaw)
-        # gmbl.release
+            print gmbl.pitch
+            time.sleep(0.1)
+        gmbl.release
         print "Gimbal Operation Complete"
