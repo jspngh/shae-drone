@@ -1,1 +1,2 @@
-# add files to igore
+# add files to ignore
+*.pyc

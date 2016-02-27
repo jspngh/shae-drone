@@ -1,7 +1,7 @@
 from dronekit import connect, time
 from solo import Solo
 
-SIM = True
+SIM = False
 
 print "connecting to drone..."
 if SIM:
@@ -13,6 +13,12 @@ s = Solo(vehicle=vehicle)
 s.print_state
 s.arm()
 s.takeoff()
-time.sleep(2)
+s.translate(x=1, y=0, z=0, wait_for_arrival=True, dist_thres=1)
+print str(vehicle.gimbal.yaw) + " " + str(vehicle.gimbal.roll)
+s.control_gimbal(pitch=-45, yaw=vehicle.gimbal.yaw, roll=vehicle.gimbal.roll)
+time.sleep(1)
+# print str(vehicle.gimbal.yaw) + " " + str(vehicle.gimbal.roll)
+s.control_gimbal(pitch=-90, yaw=0, roll=0)
+s.control_gimbal(pitch=0, yaw=0, roll=0)
+# s.translate(x=-1, y=0, z=1, wait_for_arrival=True, dist_thres=1)
 s.land()
-vehicle.release()

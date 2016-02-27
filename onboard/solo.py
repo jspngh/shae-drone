@@ -1,14 +1,19 @@
-from dronekit import Gimbal, Vehicle, VehicleMode, SystemStatus, connect, time
+from dronekit import VehicleMode, SystemStatus, time
 from pymavlink.mavutil import mavlink
 import math
 
 
 class Solo:
-    def __init__(self, vehicle):
+    def __init__(self, vehicle, update_rate=15):
         """
         :type vehicle: Vehicle
         """
         self.vehicle = vehicle
+        self.fence_breach = False
+        self.last_send_point = 0
+        self.last_send_move = 0
+        self.last_send_translate = 0
+        self.update_rate = update_rate
         return
 
     # Get all vehicle attributes (state)
@@ -53,7 +58,9 @@ class Solo:
     def land(self):
         self.vehicle.mode = VehicleMode("LAND")
         while self.vehicle.mode != "LAND":
+            self.vehicle.mode = VehicleMode("LAND")
             time.sleep(0.1)
+        print "Landing Solo..."
 
     # takeoff - takeoff to some altitude, needs armed status - params: meters
     def takeoff(self, altitude_meters=1):
@@ -80,7 +87,43 @@ class Solo:
             time.sleep(1)
         print '\033[93m' + "DroneDirectError: 'takeoff({0})' was interrupted. Vehicle was swicthed out of GUIDED mode".format(altitude_meters) + '\033[0m'
 
-    # step_left - Send the copter left some distance - params: distance meters
+    # point - Point the copter in a direction
+    def point(self, degrees, relative=True):
+
+        if self.fence_breach:
+            raise StandardError("You are outside of the fence")
+        if self.vehicle.mode != 'GUIDED':
+            print '\033[91m' + "DroneDirectError: 'point({0})' was not executed. Vehicle was not in GUIDED mode".format(degrees) + '\033[0m'
+            return
+        # limit our update rate
+        if (time.time() - self.last_send_point) < 1.0 / self.update_rate:
+            return
+        if relative:
+            is_relative = 1  # yaw relative to direction of travel
+        else:
+            is_relative = 0  # yaw is an absolute angle
+
+        if degrees != 0:
+            direction = int(degrees / abs(degrees))
+        else:
+            direction = 1
+        degrees = degrees % 360
+        # create the CONDITION_YAW command using command_long_encode()
+        msg = self.vehicle.message_factory.command_long_encode(
+            0, 0,    # target system, target component
+            mavlink.MAV_CMD_CONDITION_YAW,  # command
+            0,  # confirmation
+            degrees,      # param 1, yaw in degrees
+            0,            # param 2, yaw speed deg/s
+            direction,    # param 3, direction -1 ccw, 1 cw
+            is_relative,  # param 4, relative offset 1, absolute angle 0
+            0, 0, 0)      # param 5 ~ 7 not used
+        # send command to vehicle
+        self.vehicle.send_mavlink(msg)
+        self.vehicle.flush()
+        self.last_send_point = time.time()
+
+    # step_left - Send the solo left some distance - params: distance meters
     def translate(self, x=0, y=0, z=0, wait_for_arrival=False, dist_thres=0.3):
         if self.fence_breach:
             raise StandardError("You are outside of the fence")
@@ -135,7 +178,9 @@ class Solo:
             print '\033[93m' + "DroneDirectError: 'translate({0},{1},{2})' was interrupted. Vehicle was switched out of GUIDED mode".format(x, y, z) + '\033[0m'
 
     def control_gimbal(self, pitch, roll, yaw):
-        gmbl = Gimbal(vehicle=self.vehicle)
+        print "Operating Gimbal..."
+        gmbl = self.vehicle.gimbal
         while gmbl.pitch != pitch:
             gmbl.rotate(pitch, roll, yaw)
-        gmbl.release()
+        # gmbl.release
+        print "Gimbal Operation Complete"
