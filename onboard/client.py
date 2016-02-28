@@ -16,7 +16,7 @@ class LocationEncoder(JSONEncoder):
             res.update(o.__dict__)
             return res
 
-IP = "10.1.1.10"
+HOST = "10.1.1.10"
 PORT = 6330
 MESSAGE = Location(51.4, 3.1)
 

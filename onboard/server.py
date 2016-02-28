@@ -1,6 +1,4 @@
 import socket
-import os
-import subprocess
 import json
 
 HOST = "10.1.1.10"
@@ -23,7 +21,6 @@ while True:
     # log.flush()
 
     msg_class = data['class']
-    print msg_class
     if (msg_class == "Location"):
         fc_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
         fc_socket.connect("/tmp/flight_control")
