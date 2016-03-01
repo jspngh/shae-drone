@@ -13,6 +13,6 @@ setup(
     version = "0.0.1",
     author = "Team Project Shae",
     description = ("Project to configure the drone"),
-    packages=['onboard', 'simulator'],
+    packages=['onboard', 'simulator','tests'],
     #long_description=read('README'),
 )
