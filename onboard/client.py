@@ -1,12 +1,7 @@
 import socket
 import json
 from json import JSONEncoder
-
-
-class Location():
-    def __init__(self, x_coordinate=0.0, y_coordinate=0.0):
-        self.x_coordinate = x_coordinate
-        self.y_coordinate = y_coordinate
+from control_module import WayPoint, Location
 
 
 class LocationEncoder(JSONEncoder):
