@@ -5,8 +5,8 @@ from control_classes import Location, WayPoint, PathHandler, StartHandler, StopH
 from dronekit import connect, time
 from solo import Solo
 
-vehicle = connect('udpin:0.0.0.0:14550', wait_ready=True)
-s = Solo(vehicle=vehicle)
+# vehicle = connect('udpin:0.0.0.0:14550', wait_ready=True)
+# s = Solo(vehicle=vehicle)
 waypoint_queue = []
 unix_socket = socket.socket(socket.AF_UNIX,  # Unix Domain Socket
                             socket.SOCK_STREAM)  # TCP
@@ -28,13 +28,13 @@ while True:
 
         message = packet['Message']  # the message attribute tells us how to process the packet
         if (message == "path"):
-            handler = PathHandler(packet)
+            handler = PathHandler(packet, waypoint_queue=waypoint_queue)
         elif (message == "start"):
-            handler = StartHandler(packet)
+            handler = "tmp"  # StartHandler(packet, s)
         elif (message == "stop"):
-            handler = StopHandler(packet)
+            handler = "tmp"  # StopHandler(packet, s)
         elif (message == "emergency"):
-            handler = EmergencyHandler(packet)
+            handler = "tmp"  # EmergencyHandler(packet, s)
         else:
             raise ValueError  # if we get to this point, something went wrong
 

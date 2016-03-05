@@ -1,30 +1,27 @@
 import socket
 import json
-from json import JSONEncoder
-from control_module import WayPoint, Location
+from control_classes import Location, WayPoint, WayPointEncoder
 
 
-class LocationEncoder(JSONEncoder):
-    def default(self, o):
-        if isinstance(o, Location):
-            res = {'class': 'Location'}
-            res.update(o.__dict__)
-            return res
-
-HOST = "10.1.1.10"
+# HOST = "10.1.1.10"
+HOST = "localhost"
 PORT = 6330
-MESSAGE = Location(51.4, 3.1)
+waypoints = []
+for i in range(0, 4):
+    tmp_loc = Location(i, i)
+    waypoints.append(WayPoint(location=tmp_loc, order=i))
+path_message = {'MessageType': 'control', 'Message': 'path', 'Path': waypoints}
+json_message = json.dumps(path_message, cls=WayPointEncoder)
 
 sock = socket.socket(socket.AF_INET,  # Internet
                      socket.SOCK_STREAM)  # TCP
 
-json_message = json.dumps(MESSAGE, cls=LocationEncoder)
-print json_message
-
 try:
     # Connect to server and send data
     sock.connect((HOST, PORT))
-    sock.sendall(json_message)
+    sock.send(json_message)
+    data = sock.recv(1024)
+    print data
 
 finally:
     sock.close()

@@ -46,6 +46,7 @@ class PathHandler():
             json_location = json_waypoint['Location']
             location = Location(longitude=float(json_location['Longitude']), latitude=float(json_location['Latitude']))
             waypoint = WayPoint(location=location, order=json_waypoint['Order'])
+            print "adding waypoint"
             self.waypoint_queue.append(waypoint)
 
 
