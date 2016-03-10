@@ -1,7 +1,7 @@
 import socket
 import json
 import struct
-from solo import Location, WayPoint, WayPointEncoder
+from global_classes import Location, WayPoint, WayPointEncoder
 
 
 HOST = "10.1.1.10"

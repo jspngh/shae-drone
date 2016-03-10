@@ -1,32 +1,7 @@
 import math
-from json import JSONEncoder
-from dronekit import VehicleMode, SystemStatus, LocationGlobal, LocationGlobalRelative, time
 from pymavlink.mavutil import mavlink
-
-
-class WayPoint():
-    def __init__(self, location, order):
-        """
-        :param location: the location of the waypoint, with longitude and latitude
-        :type location: Location
-        :param order: details in which order the waypoints should be visited
-        :type order: int
-        """
-        self.location = location
-        self.order = order
-
-
-class WayPointEncoder(JSONEncoder):
-    def default(self, wp):
-        loc = {'Latitude': wp.location.latitude, 'Longitude': wp.location.longitude}
-        res = {'Order': wp.order, 'Location': loc}
-        return res
-
-
-class Location():
-    def __init__(self, longitude=0.0, latitude=0.0):
-        self.longitude = longitude
-        self.latitude = latitude
+from dronekit import VehicleMode, SystemStatus, LocationGlobal, LocationGlobalRelative, time
+from global_classes import Location, WayPoint, WayPointEncoder
 
 
 class Solo:
@@ -203,11 +178,12 @@ class Solo:
                     return
             print '\033[93m' + "DroneDirectError: 'translate({0},{1},{2})' was interrupted. Vehicle was switched out of GUIDED mode".format(x, y, z) + '\033[0m'
 
-    def visit_waypoints(self, waypoint_queue):
-        for waypoint in waypoint_queue:
-            location = LocationGlobalRelative(lat=waypoint.location.longitude, lon=waypoint.location.latitude, alt=0)
-            self.vehicle.simple_goto(location=location, groundspeed=10)
-            time.sleep(30)
+    def visit_waypoint(self, waypoint):
+        """
+        :type waypoint: WayPoint
+        """
+        location = LocationGlobalRelative(lat=waypoint.location.longitude, lon=waypoint.location.latitude, alt=0)
+        self.vehicle.simple_goto(location=location, groundspeed=10)
 
     def control_gimbal(self, pitch, roll, yaw):
         print "Operating Gimbal..."

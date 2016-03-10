@@ -5,7 +5,7 @@ import struct
 import sys
 sys.path.append('../onboard/')
 from solo import WayPoint, Location, WayPointEncoder
-from control_classes import PathHandler
+from navigation_handler import NavigationHandler
 
 
 class BasicTests(unittest.TestCase):
@@ -25,7 +25,7 @@ class BasicTests(unittest.TestCase):
         json_message = json.dumps(path_message, cls=WayPointEncoder)
         message = json.loads(json_message)
         waypoint_queue = []
-        path_handler = PathHandler(message, waypoint_queue)
+        path_handler = NavigationHandler.PathHandler(message, waypoint_queue)
         path_handler.handle_packet()
         for waypoint in path_handler.waypoint_queue:
             if waypoint.location.longitude not in range(0, 4) or waypoint.location.latitude not in range(0, 4):

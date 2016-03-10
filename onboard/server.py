@@ -67,13 +67,14 @@ class SettingsThread (threading.Thread):
 
 HOST = "10.1.1.10"
 PORT = 6330
+quit = False
 
 serversocket = socket.socket(socket.AF_INET,  # Internet
                              socket.SOCK_STREAM)  # TCP
 serversocket.bind((HOST, PORT))
 serversocket.listen(1)  # become a server socket, only 1 connection allowed
 
-while True:
+while not quit:
     client, address = serversocket.accept()
     raw = client.recv(1024)  # buffer size is 1024 bytes
     try:
