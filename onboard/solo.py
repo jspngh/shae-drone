@@ -1,6 +1,32 @@
-from dronekit import VehicleMode, SystemStatus, time
-from pymavlink.mavutil import mavlink
 import math
+from json import JSONEncoder
+from dronekit import VehicleMode, SystemStatus, LocationGlobal, LocationGlobalRelative, time
+from pymavlink.mavutil import mavlink
+
+
+class WayPoint():
+    def __init__(self, location, order):
+        """
+        :param location: the location of the waypoint, with longitude and latitude
+        :type location: Location
+        :param order: details in which order the waypoints should be visited
+        :type order: int
+        """
+        self.location = location
+        self.order = order
+
+
+class WayPointEncoder(JSONEncoder):
+    def default(self, wp):
+        loc = {'Latitude': wp.location.latitude, 'Longitude': wp.location.longitude}
+        res = {'Order': wp.order, 'Location': loc}
+        return res
+
+
+class Location():
+    def __init__(self, longitude=0.0, latitude=0.0):
+        self.longitude = longitude
+        self.latitude = latitude
 
 
 class Solo:
@@ -14,6 +40,7 @@ class Solo:
         self.last_send_move = 0
         self.last_send_translate = 0
         self.update_rate = update_rate
+        self.height = 3
         return
 
     # Get all vehicle attributes (state)
@@ -63,9 +90,9 @@ class Solo:
         print "Landing Solo..."
 
     # takeoff - takeoff to some altitude, needs armed status - params: meters
-    def takeoff(self, altitude_meters=1):
+    def takeoff(self):
         if self.vehicle.mode != 'GUIDED':
-            print '\033[91m' + "DroneDirectError: 'takeoff({0})' was not executed. Vehicle was not in GUIDED mode".format(altitude_meters) + '\033[0m'
+            print '\033[91m' + "DroneDirectError: 'takeoff({0})' was not executed. Vehicle was not in GUIDED mode".format(self.height) + '\033[0m'
             return
 
         while not self.vehicle.armed:
@@ -76,16 +103,15 @@ class Solo:
         if self.vehicle.system_status != SystemStatus('STANDBY'):
             print "Already airborne"
             return
-        self.vehicle.simple_takeoff(altitude_meters)
+        self.vehicle.simple_takeoff(self.height)
         # Wait until the vehicle reaches a safe height before processing the goto (otherwise the command
         #  after Vehicle.simple_takeoff will execute immediately).
         while self.vehicle.mode == 'GUIDED':
-            # Break and return from function just below target altitude.
-            if self.vehicle.location.global_relative_frame.alt >= altitude_meters * 0.95:
+            if self.vehicle.location.global_relative_frame.alt >= self.height * 0.95:  # Trigger just below target alt.
                 print "Takeoff Complete"
                 return
             time.sleep(1)
-        print '\033[93m' + "DroneDirectError: 'takeoff({0})' was interrupted. Vehicle was swicthed out of GUIDED mode".format(altitude_meters) + '\033[0m'
+        print '\033[93m' + "DroneDirectError: 'takeoff({0})' was interrupted. Vehicle was swicthed out of GUIDED mode".format(self.height) + '\033[0m'
 
     # point - Point the copter in a direction
     def point(self, degrees, relative=True):
@@ -140,7 +166,7 @@ class Solo:
         x_ef = y * math.cos(yaw) - x * math.sin(yaw)
         y_ef = y * math.sin(yaw) + x * math.cos(yaw)
 
-        latlon_to_m = 111319.5   # converts lat/lon to meters
+        latlon_to_m = 1.113195e5   # converts lat/lon to meters
         lat = x_ef / latlon_to_m + location.lat
         lon = y_ef / latlon_to_m + location.lon
         alt = z + location.alt
@@ -177,6 +203,12 @@ class Solo:
                     return
             print '\033[93m' + "DroneDirectError: 'translate({0},{1},{2})' was interrupted. Vehicle was switched out of GUIDED mode".format(x, y, z) + '\033[0m'
 
+    def visit_waypoints(self, waypoint_queue):
+        for waypoint in waypoint_queue:
+            location = LocationGlobalRelative(lat=waypoint.location.longitude, lon=waypoint.location.latitude, alt=0)
+            self.vehicle.simple_goto(location=location, groundspeed=10)
+            time.sleep(30)
+
     def control_gimbal(self, pitch, roll, yaw):
         print "Operating Gimbal..."
         gmbl = self.vehicle.gimbal
@@ -186,3 +218,50 @@ class Solo:
             time.sleep(0.1)
         gmbl.release
         print "Gimbal Operation Complete"
+
+    def distance_to_waypoint(self, waypoint):
+        """
+        This function was taken from http://python.dronekit.io/examples/mission_basic.html
+
+        :type waypoint: WayPoint
+        :returns: distance in metres to the waypoint
+        """
+        lat = waypoint.location.latitude
+        lon = waypoint.location.longitude
+        alt = self.height
+
+        target_waypoint_location = LocationGlobalRelative(lat, lon, alt)
+        distance_to_point = self.get_distance_metres(self.vehicle.location.global_frame, target_waypoint_location)
+        return distance_to_point
+
+    def get_location_metres(self, original_location, dNorth, dEast):
+        """
+        This function was taken from http://python.dronekit.io/examples/mission_basic.html
+
+        :type original_location: Location
+        :returns: a LocationGlobal object containing the latitude/longitude `dNorth` and `dEast` metres from the
+                  specified `original_location`. The returned Location has the same `alt` value
+                  as `original_location`.
+        """
+        earth_radius = 6378137.0  # Radius of "spherical" earth
+        # Coordinate offsets in radians
+        dLat = dNorth / earth_radius
+        dLon = dEast / (earth_radius * math.cos(math.pi * original_location.lat / 180))
+
+        # New position in decimal degrees
+        newlat = original_location.latitude + (dLat * 180 / math.pi)
+        newlon = original_location.longitude + (dLon * 180 / math.pi)
+        return LocationGlobal(newlat, newlon, original_location.alt)
+
+    def get_distance_metres(self, aLocation1, aLocation2):
+        """
+        This function was taken from http://python.dronekit.io/examples/mission_basic.html
+
+        :type aLocation1: Location
+        :type aLocation2: Location
+        :returns: the ground distance in metres between two LocationGlobal objects.
+        """
+        latlon_to_m = 1.113195e5   # converts lat/lon to meters
+        dlat = aLocation2.latitude - aLocation1.latitude
+        dlong = aLocation2.longitude - aLocation1.longitude
+        return math.sqrt((dlat * dlat) + (dlong * dlong)) * latlon_to_m

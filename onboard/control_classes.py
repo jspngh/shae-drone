@@ -1,34 +1,8 @@
 import os
 import socket
 import json
-from json import JSONEncoder
 from dronekit import connect, time
-from solo import Solo
-
-
-class WayPoint():
-    def __init__(self, location, order):
-        """
-        :param location: the location of the waypoint, with longitude and latitude
-        :type location: Location
-        :param order: details in which order the waypoints should be visited
-        :type order: int
-        """
-        self.location = location
-        self.order = order
-
-
-class WayPointEncoder(JSONEncoder):
-    def default(self, wp):
-        loc = {'Latitude': wp.location.latitude, 'Longitude': wp.location.longitude}
-        res = {'Order': wp.order, 'Location': loc}
-        return res
-
-
-class Location():
-    def __init__(self, longitude=0.0, latitude=0.0):
-        self.longitude = longitude
-        self.latitude = latitude
+from solo import Solo, Location, WayPoint, WayPointEncoder
 
 
 class PathHandler():
@@ -48,6 +22,10 @@ class PathHandler():
             waypoint = WayPoint(location=location, order=json_waypoint['Order'])
             print "adding waypoint"
             self.waypoint_queue.append(waypoint)
+        # should not be here, is here for testing
+        self.solo.arm()
+        self.solo.takeoff()
+        self.solo.visit_waypoints(waypoint_queue=self.waypoint_queue)
 
 
 class StartHandler():

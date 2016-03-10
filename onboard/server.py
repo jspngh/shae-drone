@@ -1,6 +1,7 @@
 import threading
 import socket
 import json
+import struct
 
 
 class ControlThread (threading.Thread):
@@ -17,9 +18,13 @@ class ControlThread (threading.Thread):
     def run(self):
         self.control_socket.connect("/tmp/uds_control")
         self.control_socket.send(self.data)
-        # recv_data = self.control_socket.recv(1024)
+        raw_response = self.control_socket.recv(1024)
         self.control_socket.close()
-        # self.client_socket.send(recv_data)
+        status_code = struct.unpack(">I", raw_response)[0]
+        if status_code == 200:
+            response = bytearray(struct.pack(">I", 200))
+            self.client_socket.send(response)
+            self.client_socket.close()
 
 
 class StatusThread (threading.Thread):
@@ -60,8 +65,7 @@ class SettingsThread (threading.Thread):
         # self.client_socket.send(recv_data)
 
 
-# HOST = "10.1.1.10"
-HOST = "localhost"
+HOST = "10.1.1.10"
 PORT = 6330
 
 serversocket = socket.socket(socket.AF_INET,  # Internet
