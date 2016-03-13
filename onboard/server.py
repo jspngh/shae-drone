@@ -21,7 +21,7 @@ class ControlThread (threading.Thread):
         raw_response = self.control_socket.recv(1024)
         self.control_socket.close()
         status_code = struct.unpack(">I", raw_response)[0]
-        if status_code == 200:
+        if status_code == 200 or status_code == 500:
             response = bytearray(raw_response)
             self.client_socket.send(response)
             self.client_socket.close()
@@ -42,5 +42,4 @@ while not quit:
     raw = client.recv(1024)  # buffer size is 1024 bytes
     control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     control_thread = ControlThread(1, raw, control_socket=control_socket, client_socket=client)
-    print "starting control_thread"
     control_thread.start()

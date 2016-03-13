@@ -27,19 +27,20 @@ class SettingsHandler():
             for setting_request in self.message:
                 if (setting_request['Key'] == "speed"):
                     value = setting_request['Value']
+                    self.solo.set_speed(value)
                     print "handle"
                 elif (setting_request['Key'] == "height"):
                     value = setting_request['Value']
-                    print "handle"
+                    self.solo.set_height(value)
                 elif (setting_request['Key'] == "camera_angle"):
                     value = setting_request['Value']
-                    print "handle"
+                    self.solo.set_camera_angle(value)
                 elif (setting_request['Key'] == "fps"):
                     value = setting_request['Value']
-                    print "handle"
+                    self.solo.set_camera_fps(value)
                 elif (setting_request['Key'] == "resolution"):
                     value = setting_request['Value']
-                    print "handle"
+                    self.solo.set_camera_resolution(value)
                 else:
                     raise ValueError  # if we get to this point, something went wrong
 

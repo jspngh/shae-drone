@@ -3,6 +3,7 @@ import json
 import socket
 import struct
 import threading
+import logging
 from threading import RLock
 from dronekit import connect, time
 from solo import Solo, Location, WayPoint, WayPointEncoder
@@ -23,9 +24,11 @@ class NavigationHandler():
         self.lock = lock  # this lock will be used when accessing the waypoint_queue
         self.waypoint_queue = queue
 
+        self.logger = logging.Logger(name='NavigationHandler', level=logging.DEBUG)
+
     def handle_packet(self):
         if (self.message == "path"):
-            handler = self.PathHandler(self.packet, self.solo, waypoint_queue=self.waypoint_queue)
+            handler = self.PathHandler(self.packet, waypoint_queue=self.waypoint_queue, lock=self.lock)
             handler.handle_packet()
         elif (self.message == "start"):
             handler = self.StartHandler(self.packet, self.solo)
@@ -67,7 +70,9 @@ class NavigationHandler():
                     del self.waypoint_queue[0]
                     self.lock.release()
 
+                    self.logger.debug("Visiting waypoint...")
                     self.solo.visit_waypoint(waypoint)
+                    self.logger.debug("Waypoint visited")
                     time.sleep(0.1)
 
     class PathHandler():
@@ -89,7 +94,7 @@ class NavigationHandler():
                 location = Location(longitude=float(json_location['Longitude']), latitude=float(json_location['Latitude']))
                 waypoint = WayPoint(location=location, order=json_waypoint['Order'])
 
-                print "adding waypoint"
+                self.logger.debug("Adding waypoint...")
                 self.lock.acquire()
                 self.waypoint_queue.append(waypoint)
                 self.lock.release()
@@ -103,7 +108,7 @@ class NavigationHandler():
             self.solo = solo
 
         def handle_packet(self):
-            print "arming"
+            self.logger.debug("Arming Solo...")
             self.solo.arm()
             self.solo.takeoff()
 

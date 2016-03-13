@@ -29,8 +29,6 @@ except OSError:
 unix_socket.bind("/tmp/uds_control")
 unix_socket.listen(1)
 
-print "starting navigation thread"
-
 nav_thread = NavigationHandler.NavigationThread(1, solo=s, waypoint_queue=waypoint_queue, lock=lock, quit=quit)
 nav_thread.start()
 
@@ -40,10 +38,8 @@ while not quit:
     try:
         packet = json.loads(raw)  # parse the Json we received
         if 'MessageType' not in packet:  # every packet should have a MessageType field
-            print "every packet should have a MessageType field"
             raise ValueError
         if 'Message' not in packet:  # every packet should have a Message field
-            print "every packet should have a Message field"
             raise ValueError
 
         message_type = packet['MessageType']  # the 'message type' attribute tells us to which class of packet this packet belongs
@@ -61,7 +57,8 @@ while not quit:
         else:
             raise ValueError
 
-    except ValueError:
-        print "handle error"
+        client.send(struct.pack(">I", 200))
 
-    client.send(struct.pack(">I", 200))
+    except ValueError:
+        # TODO: handle error
+        client.send(struct.pack(">I", 500))
