@@ -1,10 +1,14 @@
 import os
 import json
+import struct
 import socket
+from threading import RLock
 from dronekit import connect, time
 from solo import Solo
 from global_classes import SIM
-from navigation_classes import PathHandler, StartHandler, StopHandler, EmergencyHandler
+from navigation_handler import NavigationHandler
+from settings_handler import SettingsHandler
+from status_handler import StatusHandler
 
 if SIM:
     vehicle = connect('tcp:127.0.0.1:5760', wait_ready=True)
@@ -14,6 +18,8 @@ else:
     s = Solo(vehicle=vehicle)
 
 quit = False
+waypoint_queue = []  # in this queue, the waypoints the drone has to visit will come
+lock = RLock()  # this lock will be used when accessing the waypoint_queue
 unix_socket = socket.socket(socket.AF_UNIX,      # Unix Domain Socket
                             socket.SOCK_STREAM)  # TCP
 try:
@@ -23,22 +29,39 @@ except OSError:
 unix_socket.bind("/tmp/uds_control")
 unix_socket.listen(1)
 
+print "starting navigation thread"
+
+nav_thread = NavigationHandler.NavigationThread(1, solo=s, waypoint_queue=waypoint_queue, lock=lock, quit=quit)
+nav_thread.start()
+
 while not quit:
     client, address = unix_socket.accept()
     raw = client.recv(1024)  # TODO: request the length first, to be able to send messages of arbitrary length
     try:
         packet = json.loads(raw)  # parse the Json we received
         if 'MessageType' not in packet:  # every packet should have a MessageType field
+            print "every packet should have a MessageType field"
             raise ValueError
         if 'Message' not in packet:  # every packet should have a Message field
+            print "every packet should have a Message field"
             raise ValueError
 
         message_type = packet['MessageType']  # the 'message type' attribute tells us to which class of packet this packet belongs
         message = packet['Message']           # the 'message' attribute tells what packet it is, within it's class
         if (message_type == "navigation"):
+            nav_handler = NavigationHandler(packet, message, s, waypoint_queue, lock)
+            print "handling packet"
+            nav_handler.handle_packet()
         elif (message_type == "status"):
+            stat_handler = StatusHandler(packet, message, s)
+            stat_handler.handle_packet()
         elif (message_type == "settings"):
+            sett_handler = SettingsHandler(packet, message, s)
+            sett_handler.handle_packet()
         else:
             raise ValueError
+
     except ValueError:
         print "handle error"
+
+    client.send(struct.pack(">I", 200))

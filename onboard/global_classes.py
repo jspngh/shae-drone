@@ -26,4 +26,4 @@ class Location():
         self.latitude = latitude
 
 
-SIM = False
+SIM = True

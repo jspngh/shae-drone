@@ -12,15 +12,16 @@ class NavigationHandler():
     """
     This class will take care of packets of the 'navigation' message type
     """
-    def __init__(self, packet, message, solo):
+    def __init__(self, packet, message, solo, queue, lock):
         """
         :type solo: Solo
+        :type lock: RLock
         """
         self.packet = packet
         self.message = message
         self.solo = solo
-        self.lock = RLock()  # this lock will be used when accessing the waypoint_queue
-        self.waypoint_queue = []
+        self.lock = lock  # this lock will be used when accessing the waypoint_queue
+        self.waypoint_queue = queue
 
     def handle_packet(self):
         if (self.message == "path"):
@@ -28,17 +29,20 @@ class NavigationHandler():
             handler.handle_packet()
         elif (self.message == "start"):
             handler = self.StartHandler(self.packet, self.solo)
+            handler.handle_packet()
         elif (self.message == "stop"):
             handler = self.StopHandler(self.packet, self.solo)
+            handler.handle_packet()
         elif (self.message == "emergency"):
             handler = self.EmergencyHandler(self.packet, self.solo)
+            handler.handle_packet()
         else:
             raise ValueError  # if we get to this point, something went wrong
 
     class NavigationThread (threading.Thread):
         """
         This class will run in another thread
-        and fly to the waypoint in the waypoint_queue
+        and fly to the waypoints in the waypoint_queue
         """
         def __init__(self, threadID, solo, waypoint_queue, lock, quit):
             """
@@ -57,14 +61,14 @@ class NavigationHandler():
             while True:
                 if not self.waypoint_queue:
                     time.sleep(1)
+                else:
+                    self.lock.acquire()
+                    waypoint = self.waypoint_queue[0]
+                    del self.waypoint_queue[0]
+                    self.lock.release()
 
-                self.lock.acquire()
-                waypoint = self.waypoint_queue[0]
-                del self.waypoint_queue[0]
-                self.lock.release()
-
-                self.solo.visit_waypoint(waypoint)
-                time.sleep(0.1)
+                    self.solo.visit_waypoint(waypoint)
+                    time.sleep(0.1)
 
     class PathHandler():
         def __init__(self, packet, waypoint_queue, lock):
@@ -99,6 +103,7 @@ class NavigationHandler():
             self.solo = solo
 
         def handle_packet(self):
+            print "arming"
             self.solo.arm()
             self.solo.takeoff()
 

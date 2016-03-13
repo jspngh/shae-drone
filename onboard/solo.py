@@ -178,12 +178,25 @@ class Solo:
                     return
             print '\033[93m' + "DroneDirectError: 'translate({0},{1},{2})' was interrupted. Vehicle was switched out of GUIDED mode".format(x, y, z) + '\033[0m'
 
-    def visit_waypoint(self, waypoint):
+    def visit_waypoint(self, waypoint, dist_thres=0.3):
         """
         :type waypoint: WayPoint
         """
-        location = LocationGlobalRelative(lat=waypoint.location.longitude, lon=waypoint.location.latitude, alt=0)
+        latlon_to_m = 1.113195e5   # converts lat/lon to meters
+
+        location = LocationGlobalRelative(lat=waypoint.location.latitude, lon=waypoint.location.longitude, alt=self.height)
         self.vehicle.simple_goto(location=location, groundspeed=10)
+
+        while self.vehicle.mode == "GUIDED":
+            veh_loc = self.vehicle.location.global_relative_frame
+            diff_lat_m = (location.lat - veh_loc.lat) * latlon_to_m
+            diff_lon_m = (location.lon - veh_loc.lon) * latlon_to_m
+            diff_alt_m = location.alt - veh_loc.alt
+            dist_xyz = math.sqrt(diff_lat_m**2 + diff_lon_m**2 + diff_alt_m**2)
+            if dist_xyz > dist_thres:
+                time.sleep(0.5)
+            else:
+                return
 
     def control_gimbal(self, pitch, roll, yaw):
         print "Operating Gimbal..."
