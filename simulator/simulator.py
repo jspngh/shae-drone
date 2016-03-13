@@ -1,5 +1,6 @@
-import socket 
+import socket
 import json
+
 
 def send_response(client, type):
     client.send('Response: Message with type "' + type + '" is correctly received!')
@@ -25,7 +26,7 @@ while not quit:
             raise ValueError
 
         message_type = packet['MessageType']  # the message type will decide which module we need to use
-	send_response(client, message_type)
+        send_response(client, message_type)
 
     except ValueError:
         print "handle error"
