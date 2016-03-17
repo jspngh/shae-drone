@@ -24,7 +24,7 @@ class NavigationHandler():
         self.lock = lock  # this lock will be used when accessing the waypoint_queue
         self.waypoint_queue = queue
 
-        self.logger = logging.Logger(name='NavigationHandler', level=logging.DEBUG)
+        # self.logger = logging.Logger(name='NavigationHandler', level=logging.DEBUG)
 
     def handle_packet(self):
         if (self.message == "path"):
@@ -70,9 +70,9 @@ class NavigationHandler():
                     del self.waypoint_queue[0]
                     self.lock.release()
 
-                    self.logger.debug("Visiting waypoint...")
+                    # self.logger.debug("Visiting waypoint...")
                     self.solo.visit_waypoint(waypoint)
-                    self.logger.debug("Waypoint visited")
+                    # self.logger.debug("Waypoint visited")
                     time.sleep(0.1)
 
     class PathHandler():
@@ -94,7 +94,7 @@ class NavigationHandler():
                 location = Location(longitude=float(json_location['Longitude']), latitude=float(json_location['Latitude']))
                 waypoint = WayPoint(location=location, order=json_waypoint['Order'])
 
-                self.logger.debug("Adding waypoint...")
+                # self.logger.debug("Adding waypoint...")
                 self.lock.acquire()
                 self.waypoint_queue.append(waypoint)
                 self.lock.release()
@@ -108,7 +108,7 @@ class NavigationHandler():
             self.solo = solo
 
         def handle_packet(self):
-            self.logger.debug("Arming Solo...")
+            # self.logger.debug("Arming Solo...")
             self.solo.arm()
             self.solo.takeoff()
 

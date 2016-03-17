@@ -22,7 +22,7 @@ class StatusHandler():
 
     def handle_packet(self):
         try:
-            if (self.message == "heartbeat"):  # the status message is a heartbeat message
+            if (self.message == "all_statuses"):  # all status attributes are requested
                 # location = self.solo.get_location
                 print "handle"
             else:                         # this is an array with the attributes that were required
@@ -36,6 +36,24 @@ class StatusHandler():
                     elif (status_request['Key'] == "drone_type"):
                         print "handle"
                     elif (status_request['Key'] == "waypoint_reached"):
+                        print "handle"
+                    elif (status_request['Key'] == "next_waypoint"):
+                        print "handle"
+                    elif (status_request['Key'] == "next_waypoints"):
+                        print "handle"
+                    elif (status_request['Key'] == "speed"):
+                        print "handle"
+                    elif (status_request['Key'] == "selected_speed"):
+                        print "handle"
+                    elif (status_request['Key'] == "height"):
+                        print "handle"
+                    elif (status_request['Key'] == "selected_height"):
+                        print "handle"
+                    elif (status_request['Key'] == "camera_angle"):
+                        print "handle"
+                    elif (status_request['Key'] == "fps"):
+                        print "handle"
+                    elif (status_request['Key'] == "resolution"):
                         print "handle"
                     else:
                         raise ValueError  # if we get to this point, something went wrong

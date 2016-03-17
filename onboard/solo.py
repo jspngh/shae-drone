@@ -1,8 +1,8 @@
 import math
 import logging
 from pymavlink.mavutil import mavlink
-from dronekit import VehicleMode, SystemStatus, LocationGlobal, LocationGlobalRelative, time
-from global_classes import Location, WayPoint, WayPointEncoder
+from dronekit import VehicleMode, Battery, SystemStatus, LocationGlobal, LocationGlobalRelative, time
+from global_classes import Location, WayPoint, WayPointEncoder, DroneType
 
 
 class Solo:
@@ -18,6 +18,7 @@ class Solo:
         self.update_rate = update_rate
         self.height = height
         self.speed = speed
+        self.drone_type = DroneType('3DR', 'Solo')
 
         self.logger = logging.Logger(name='solo', level=logging.DEBUG)
         return
@@ -208,22 +209,36 @@ class Solo:
                 self.logger.debug("Solo arrived at waypoint")
                 return
 
+    def get_battery_level(self):
+        batt = self.vehicle.battery()
+        return batt.level
+
+    def get_drone_type(self):
+        return self.drone_type
+
     def get_location(self):
         veh_loc = self.vehicle.location.global_relative_frame
         loc = Location(longitude=veh_loc.lon, latitude=veh_loc.lat)
         return loc
 
     def get_speed(self):
+        return self.vehicle.airspeed
+
+    def get_target_speed(self):
         return self.speed
 
-    def set_speed(self, speed):
+    def set_target_speed(self, speed):
         self.speed = speed
         return
 
     def get_height(self):
+        loc = self.vehicle.location
+        return loc.global_relative_frame.alt
+
+    def get_target_height(self):
         return self.height
 
-    def set_height(self, height):
+    def set_target_height(self, height):
         self.height = height
         return
 

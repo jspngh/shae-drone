@@ -27,8 +27,8 @@ class ControlThread (threading.Thread):
             self.client_socket.close()
 
 
-# HOST = "10.1.1.10"
-HOST = "localhost"
+HOST = "10.1.1.10"
+# HOST = "localhost"
 PORT = 6330
 quit = False
 

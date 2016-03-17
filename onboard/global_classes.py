@@ -26,4 +26,16 @@ class Location():
         self.latitude = latitude
 
 
-SIM = True
+class DroneType():
+    def __init__(self, manufacturer, model):
+        self.manufacturer = manufacturer
+        self.model = model
+
+
+class DroneTypeEncoder(JSONEncoder):
+    def default(self, drone):
+        if isinstance(drone, DroneType):
+            dt = {'Manufacturer': drone.manufacturer, 'Model': drone.model}
+            return dt
+
+SIM = False
