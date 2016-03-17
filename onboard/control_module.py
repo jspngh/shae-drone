@@ -46,7 +46,6 @@ while not quit:
         message = packet['Message']           # the 'message' attribute tells what packet it is, within it's class
         if (message_type == "navigation"):
             nav_handler = NavigationHandler(packet, message, s, waypoint_queue, lock)
-            print "handling packet"
             nav_handler.handle_packet()
         elif (message_type == "status"):
             stat_handler = StatusHandler(packet, message, s)
