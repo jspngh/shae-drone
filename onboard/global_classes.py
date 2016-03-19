@@ -1,3 +1,4 @@
+import logging
 from json import JSONEncoder
 
 
@@ -38,4 +39,5 @@ class DroneTypeEncoder(JSONEncoder):
             dt = {'Manufacturer': drone.manufacturer, 'Model': drone.model}
             return dt
 
-SIM = False
+SIM = True
+logging_level = logging.DEBUG

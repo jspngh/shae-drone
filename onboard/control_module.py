@@ -2,13 +2,24 @@ import os
 import json
 import struct
 import socket
+import logging
+import sys
 from threading import RLock
 from dronekit import connect, time
 from solo import Solo
-from global_classes import SIM
+from global_classes import SIM, logging_level
 from navigation_handler import NavigationHandler
 from settings_handler import SettingsHandler
 from status_handler import StatusHandler
+
+# set up logging
+control_logger = logging.getLogger("Control Module")
+formatter = logging.Formatter('[%(levelname)s] %(message)s')
+handler = logging.StreamHandler(stream=sys.stdout)
+handler.setFormatter(formatter)
+handler.setLevel(logging_level)
+control_logger.addHandler(handler)
+control_logger.setLevel(logging_level)
 
 if SIM:
     vehicle = connect('tcp:127.0.0.1:5760', wait_ready=True)
@@ -45,12 +56,15 @@ while not quit:
         message_type = packet['MessageType']  # the 'message type' attribute tells us to which class of packet this packet belongs
         message = packet['Message']           # the 'message' attribute tells what packet it is, within it's class
         if (message_type == "navigation"):
+            control_logger.info("received a navigation request")
             nav_handler = NavigationHandler(packet, message, s, waypoint_queue, lock)
             nav_handler.handle_packet()
         elif (message_type == "status"):
+            control_logger.info("received a status request")
             stat_handler = StatusHandler(packet, message, s)
             stat_handler.handle_packet()
         elif (message_type == "settings"):
+            control_logger.info("received a settings request")
             sett_handler = SettingsHandler(packet, message, s)
             sett_handler.handle_packet()
         else:
