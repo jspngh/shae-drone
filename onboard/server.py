@@ -21,13 +21,22 @@ class ControlThread (threading.Thread):
     def run(self):
         self.control_socket.connect("/tmp/uds_control")
         self.control_socket.send(self.data)
-        raw_response = self.control_socket.recv(1024)
-        self.control_socket.close()
+        raw_response = self.control_socket.recv(4)
         status_code = struct.unpack(">I", raw_response)[0]
-        if status_code == 200 or status_code == 500:
+        if status_code == 200 or status_code == 500:  # let the client know if request succeeded or failed
+            self.control_socket.close()
             response = bytearray(raw_response)
             self.client_socket.send(response)
-            self.client_socket.close()
+
+        if status_code == 300:  # send the response to the client
+            raw_length = self.control_socket.recv(4)
+            response_length = struct.unpack(">I", raw_length)[0]
+            response = self.control_socket.recv(response_length)
+            response_length = bytearray(raw_length)
+            self.client_socket.send(response_length + response)
+
+        self.control_socket.close()
+        self.client_socket.close()
 
 # set up logging
 server_logger = logging.getLogger("Server")

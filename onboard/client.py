@@ -21,28 +21,30 @@ start_message = {'MessageType': 'navigation', 'Message': 'start'}
 json_start_message = json.dumps(start_message)
 emergency_message = {'MessageType': 'navigation', 'Message': 'emergency'}
 json_em_message = json.dumps(emergency_message)
+dronetype_message = {'MessageType': 'status', 'Message': [{'Key': 'drone_type'}]}
+json_dt_message = json.dumps(dronetype_message)
 
 try:
     sock = socket.socket(socket.AF_INET,  # Internet
                          socket.SOCK_STREAM)  # TCP
     # Connect to server and send data
     sock.connect((HOST, PORT))
-    sock.send(json_start_message)
+    sock.send(json_dt_message)
     print "message sent"
-    data = sock.recv(1024)
-    print struct.unpack(">I", data)[0]
-    sock.close()
-    time.sleep(4)
+    data = sock.recv(4)
+    lenght = struct.unpack(">I", data)[0]
+    resp = sock.recv(lenght)
+    print resp
 
-    sock = socket.socket(socket.AF_INET,  # Internet
-                         socket.SOCK_STREAM)  # TCP
-    sock.connect((HOST, PORT))
-    sock.send(json_path_message)
-    print "message sent"
-    data = sock.recv(1024)
-    print struct.unpack(">I", data)[0]
-    sock.close()
-    time.sleep(4)
+    # sock = socket.socket(socket.AF_INET,  # Internet
+    #                      socket.SOCK_STREAM)  # TCP
+    # sock.connect((HOST, PORT))
+    # sock.send(json_path_message)
+    # print "message sent"
+    # data = sock.recv(1024)
+    # print struct.unpack(">I", data)[0]
+    # sock.close()
+    # time.sleep(4)
 
     # sock = socket.socket(socket.AF_INET,  # Internet
     #                      socket.SOCK_STREAM)  # TCP

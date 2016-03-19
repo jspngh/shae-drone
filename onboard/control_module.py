@@ -59,18 +59,24 @@ while not quit:
             control_logger.info("received a navigation request")
             nav_handler = NavigationHandler(packet, message, s, waypoint_queue, lock)
             nav_handler.handle_packet()
+            client.send(struct.pack(">I", 200))
         elif (message_type == "status"):
             control_logger.info("received a status request")
             stat_handler = StatusHandler(packet, message, s)
-            stat_handler.handle_packet()
+            response = stat_handler.handle_packet()
+            if response is None:
+                client.send(struct.pack(">I", 500))  # something went wrong
+            else:
+                client.send(struct.pack(">I", 300))
+                client.send(struct.pack(">I", len(response)))
+                client.send(response)
         elif (message_type == "settings"):
             control_logger.info("received a settings request")
             sett_handler = SettingsHandler(packet, message, s)
             sett_handler.handle_packet()
+            client.send(struct.pack(">I", 200))
         else:
             raise ValueError
-
-        client.send(struct.pack(">I", 200))
 
     except ValueError:
         # TODO: handle error

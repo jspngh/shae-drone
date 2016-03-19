@@ -62,7 +62,6 @@ class NavigationHandler():
             :type solo: Solo
             :type lock: RLock
             :type quit: bool
-            :type logger: Logger
             """
             threading.Thread.__init__(self)
             self.threadID = threadID
