@@ -1,3 +1,4 @@
+import logging
 from json import JSONEncoder
 
 
@@ -26,4 +27,23 @@ class Location():
         self.latitude = latitude
 
 
+class LocationEncoder(JSONEncoder):
+    def default(self, loc):
+        loc = {'Latitude': loc.latitude, 'Longitude': loc.longitude}
+        return {'current_location': loc}
+
+
+class DroneType():
+    def __init__(self, manufacturer, model):
+        self.manufacturer = manufacturer
+        self.model = model
+
+
+class DroneTypeEncoder(JSONEncoder):
+    def default(self, drone):
+        if isinstance(drone, DroneType):
+            dt = {'Manufacturer': drone.manufacturer, 'Model': drone.model}
+            return {'drone_type': dt}
+
 SIM = True
+logging_level = logging.DEBUG

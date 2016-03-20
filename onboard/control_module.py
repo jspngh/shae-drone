@@ -2,13 +2,24 @@ import os
 import json
 import struct
 import socket
+import logging
+import sys
 from threading import RLock
 from dronekit import connect, time
 from solo import Solo
-from global_classes import SIM
+from global_classes import SIM, logging_level
 from navigation_handler import NavigationHandler
 from settings_handler import SettingsHandler
 from status_handler import StatusHandler
+
+# set up logging
+control_logger = logging.getLogger("Control Module")
+formatter = logging.Formatter('[%(levelname)s] %(message)s')
+handler = logging.StreamHandler(stream=sys.stdout)
+handler.setFormatter(formatter)
+handler.setLevel(logging_level)
+control_logger.addHandler(handler)
+control_logger.setLevel(logging_level)
 
 if SIM:
     vehicle = connect('tcp:127.0.0.1:5760', wait_ready=True)
@@ -29,8 +40,6 @@ except OSError:
 unix_socket.bind("/tmp/uds_control")
 unix_socket.listen(1)
 
-print "starting navigation thread"
-
 nav_thread = NavigationHandler.NavigationThread(1, solo=s, waypoint_queue=waypoint_queue, lock=lock, quit=quit)
 nav_thread.start()
 
@@ -40,28 +49,35 @@ while not quit:
     try:
         packet = json.loads(raw)  # parse the Json we received
         if 'MessageType' not in packet:  # every packet should have a MessageType field
-            print "every packet should have a MessageType field"
             raise ValueError
         if 'Message' not in packet:  # every packet should have a Message field
-            print "every packet should have a Message field"
             raise ValueError
 
         message_type = packet['MessageType']  # the 'message type' attribute tells us to which class of packet this packet belongs
         message = packet['Message']           # the 'message' attribute tells what packet it is, within it's class
         if (message_type == "navigation"):
+            control_logger.info("received a navigation request")
             nav_handler = NavigationHandler(packet, message, s, waypoint_queue, lock)
-            print "handling packet"
             nav_handler.handle_packet()
+            client.send(struct.pack(">I", 200))
         elif (message_type == "status"):
+            control_logger.info("received a status request")
             stat_handler = StatusHandler(packet, message, s)
-            stat_handler.handle_packet()
+            response = stat_handler.handle_packet()
+            if response is None:
+                client.send(struct.pack(">I", 500))  # something went wrong
+            else:
+                client.send(struct.pack(">I", 300))
+                client.send(struct.pack(">I", len(response)))
+                client.send(response)
         elif (message_type == "settings"):
+            control_logger.info("received a settings request")
             sett_handler = SettingsHandler(packet, message, s)
             sett_handler.handle_packet()
+            client.send(struct.pack(">I", 200))
         else:
             raise ValueError
 
     except ValueError:
-        print "handle error"
-
-    client.send(struct.pack(">I", 200))
+        # TODO: handle error
+        client.send(struct.pack(">I", 500))

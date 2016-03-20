@@ -1,11 +1,13 @@
 import math
+import logging
+import sys
 from pymavlink.mavutil import mavlink
-from dronekit import VehicleMode, SystemStatus, LocationGlobal, LocationGlobalRelative, time
-from global_classes import Location, WayPoint, WayPointEncoder
+from dronekit import VehicleMode, Battery, SystemStatus, LocationGlobal, LocationGlobalRelative, time
+from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logging_level
 
 
 class Solo:
-    def __init__(self, vehicle, update_rate=15):
+    def __init__(self, vehicle, height=3, speed=10, update_rate=15):
         """
         :type vehicle: Vehicle
         """
@@ -15,7 +17,19 @@ class Solo:
         self.last_send_move = 0
         self.last_send_translate = 0
         self.update_rate = update_rate
-        self.height = 3
+        self.height = height
+        self.speed = speed
+        self.drone_type = DroneType('3DR', 'Solo')
+
+        # set up self.logger
+        self.logger = logging.getLogger("Solo")
+        formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        handler = logging.StreamHandler(stream=sys.stdout)
+        handler.setFormatter(formatter)
+        handler.setLevel(logging_level)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging_level)
+
         return
 
     # Get all vehicle attributes (state)
@@ -39,14 +53,14 @@ class Solo:
         self.vehicle.mode = VehicleMode("GUIDED")
         while self.vehicle.mode != "GUIDED":
             time.sleep(0.1)
-        print "Control granted"
+        self.logger.info("Control granted")
         if self.vehicle.armed is False:
             # Don't let the user try to arm until autopilot is ready
-            print " Waiting for vehicle to initialise..."
+            self.logger.info("Waiting for vehicle to initialise...")
             while not self.vehicle.is_armable:
                 time.sleep(1)
             self.vehicle.armed = True
-            print 'Vehicle Armed'
+            self.logger.info("Vehicle Armed")
 
     # brake - Stop the solo moving
     def brake(self):
@@ -62,12 +76,13 @@ class Solo:
         while self.vehicle.mode != "LAND":
             self.vehicle.mode = VehicleMode("LAND")
             time.sleep(0.1)
-        print "Landing Solo..."
+        self.logger.info("Landing Solo...")
 
     # takeoff - takeoff to some altitude, needs armed status - params: meters
     def takeoff(self):
         if self.vehicle.mode != 'GUIDED':
-            print '\033[91m' + "DroneDirectError: 'takeoff({0})' was not executed. Vehicle was not in GUIDED mode".format(self.height) + '\033[0m'
+            self.logger.error('\033[91m' + "DroneDirectError: 'takeoff({0})' was not executed. \
+                              Vehicle was not in GUIDED mode".format(self.height) + '\033[0m')
             return
 
         while not self.vehicle.armed:
@@ -76,17 +91,18 @@ class Solo:
 
         print "Taking off..."
         if self.vehicle.system_status != SystemStatus('STANDBY'):
-            print "Already airborne"
+            self.logger.info("Already airborne")
             return
         self.vehicle.simple_takeoff(self.height)
         # Wait until the vehicle reaches a safe height before processing the goto (otherwise the command
         #  after Vehicle.simple_takeoff will execute immediately).
         while self.vehicle.mode == 'GUIDED':
             if self.vehicle.location.global_relative_frame.alt >= self.height * 0.95:  # Trigger just below target alt.
-                print "Takeoff Complete"
+                self.logger.info("Takeoff Complete")
                 return
             time.sleep(1)
-        print '\033[93m' + "DroneDirectError: 'takeoff({0})' was interrupted. Vehicle was swicthed out of GUIDED mode".format(self.height) + '\033[0m'
+        self.logger.error('\033[93m' + "DroneDirectError: 'takeoff({0})' was interrupted. \
+                          Vehicle was swicthed out of GUIDED mode".format(self.height) + '\033[0m')
 
     # point - Point the copter in a direction
     def point(self, degrees, relative=True):
@@ -94,7 +110,8 @@ class Solo:
         if self.fence_breach:
             raise StandardError("You are outside of the fence")
         if self.vehicle.mode != 'GUIDED':
-            print '\033[91m' + "DroneDirectError: 'point({0})' was not executed. Vehicle was not in GUIDED mode".format(degrees) + '\033[0m'
+            self.logger.error('\033[91m' + "DroneDirectError: 'point({0})' was not executed. \
+                              Vehicle was not in GUIDED mode".format(degrees) + '\033[0m')
             return
         # limit our update rate
         if (time.time() - self.last_send_point) < 1.0 / self.update_rate:
@@ -129,7 +146,8 @@ class Solo:
         if self.fence_breach:
             raise StandardError("You are outside of the fence")
         if self.vehicle.mode != 'GUIDED':
-            print '\033[91m' + "DroneDirectError: 'translate({0},{1},{2})' was not executed. Vehicle was not in GUIDED mode".format(x, y, z) + '\033[0m'
+            self.logger.error('\033[91m' + "DroneDirectError: 'translate({0},{1},{2})' was not executed. \
+                              Vehicle was not in GUIDED mode".format(x, y, z) + '\033[0m')
             return
         # limit our update rate
         if (time.time() - self.last_send_translate) < 1.0 / self.update_rate:
@@ -165,7 +183,7 @@ class Solo:
         self.vehicle.flush()
         self.last_send_translate = time.time()
         self.point(0)
-        print "translating..."
+        self.logger.info("translating...")
         if wait_for_arrival:
             while self.vehicle.mode == "GUIDED":
                 veh_loc = self.vehicle.location.global_relative_frame
@@ -174,9 +192,10 @@ class Solo:
                 diff_alt_m = alt - veh_loc.alt
                 dist_xyz = math.sqrt(diff_lat_m**2 + diff_lon_m**2 + diff_alt_m**2)
                 if dist_xyz < dist_thres:
-                    print "Arrived"
+                    self.logger.info("Arrived")
                     return
-            print '\033[93m' + "DroneDirectError: 'translate({0},{1},{2})' was interrupted. Vehicle was switched out of GUIDED mode".format(x, y, z) + '\033[0m'
+            self.logger.error('\033[93m' + "DroneDirectError: 'translate({0},{1},{2})' was interrupted. \
+                              Vehicle was switched out of GUIDED mode".format(x, y, z) + '\033[0m')
 
     def visit_waypoint(self, waypoint, dist_thres=0.3):
         """
@@ -185,7 +204,7 @@ class Solo:
         latlon_to_m = 1.113195e5   # converts lat/lon to meters
 
         location = LocationGlobalRelative(lat=waypoint.location.latitude, lon=waypoint.location.longitude, alt=self.height)
-        self.vehicle.simple_goto(location=location, groundspeed=10)
+        self.vehicle.simple_goto(location=location, airspeed=self.speed)
 
         while self.vehicle.mode == "GUIDED":
             veh_loc = self.vehicle.location.global_relative_frame
@@ -196,17 +215,69 @@ class Solo:
             if dist_xyz > dist_thres:
                 time.sleep(0.5)
             else:
+                self.logger.info("Solo arrived at waypoint")
                 return
 
+    def get_battery_level(self):
+        batt = self.vehicle.battery()
+        return batt.level
+
+    def get_drone_type(self):
+        return self.drone_type
+
+    def get_location(self):
+        veh_loc = self.vehicle.location.global_relative_frame
+        loc = Location(longitude=veh_loc.lon, latitude=veh_loc.lat)
+        return loc
+
+    def get_speed(self):
+        return self.vehicle.airspeed
+
+    def get_target_speed(self):
+        return self.speed
+
+    def set_target_speed(self, speed):
+        self.speed = speed
+        return
+
+    def get_height(self):
+        loc = self.vehicle.location
+        return loc.global_relative_frame.alt
+
+    def get_target_height(self):
+        return self.height
+
+    def set_target_height(self, height):
+        self.height = height
+        return
+
+    def get_camera_angle(self):
+        return
+
+    def set_camera_angle(self, angle):
+        return
+
+    def get_camera_fps(self):
+        return
+
+    def set_camera_fps(self, fps):
+        return
+
+    def get_camera_resolution(self):
+        return
+
+    def set_camera_resolution(self, resolution):
+        return
+
     def control_gimbal(self, pitch, roll, yaw):
-        print "Operating Gimbal..."
+        self.logger.info("Operating Gimbal...")
         gmbl = self.vehicle.gimbal
         while gmbl.pitch != pitch:
             gmbl.rotate(pitch, roll, yaw)
             print gmbl.pitch
             time.sleep(0.1)
         gmbl.release
-        print "Gimbal Operation Complete"
+        self.logger.info("Gimbal Operation Complete")
 
     def distance_to_waypoint(self, waypoint):
         """
