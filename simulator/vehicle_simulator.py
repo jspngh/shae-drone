@@ -1,12 +1,14 @@
 from dronekit import connect, VehicleMode
 import time
 from dronekit_sitl import SITL
-
+from subprocess import Popen
+from stream_simulator import StreamSimulator
 
 class VehicleSimulator():
     def __init__(self):
         self.vehicle = None
         self.sitl = None
+        self.video_stream = None
 
     def get_vehicle(self):
         if self.vehicle is None:
@@ -25,6 +27,9 @@ class VehicleSimulator():
             print self.vehicle
             self.vehicle.wait_ready('autopilot_version')
 
+#	    stream_simulator = StreamSimulator()
+#	    stream_simulator.start
+
         return self.vehicle
 
     def close(self):
@@ -36,3 +41,7 @@ class VehicleSimulator():
         # Shut down simulator if it was started.
         if self.sitl is not None:
             self.sitl.stop()
+
+	if self.video_stream is not None:
+	    self.video_stream.kill()
+
