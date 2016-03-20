@@ -27,11 +27,11 @@ class SettingsHandler():
             for setting_request in self.message:
                 if (setting_request['Key'] == "speed"):
                     value = setting_request['Value']
-                    self.solo.set_speed(value)
+                    self.solo.set_target_speed(value)
                     print "handle"
                 elif (setting_request['Key'] == "height"):
                     value = setting_request['Value']
-                    self.solo.set_height(value)
+                    self.solo.set_target_height(value)
                 elif (setting_request['Key'] == "camera_angle"):
                     value = setting_request['Value']
                     self.solo.set_camera_angle(value)

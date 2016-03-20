@@ -45,5 +45,5 @@ class DroneTypeEncoder(JSONEncoder):
             dt = {'Manufacturer': drone.manufacturer, 'Model': drone.model}
             return {'drone_type': dt}
 
-SIM = True
+SIM = False
 logging_level = logging.DEBUG

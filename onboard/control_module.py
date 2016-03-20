@@ -43,6 +43,10 @@ unix_socket.listen(1)
 nav_thread = NavigationHandler.NavigationThread(1, solo=s, waypoint_queue=waypoint_queue, lock=lock, quit=quit)
 nav_thread.start()
 
+control_logger.debug("asking for resolution")
+s.get_camera_resolution()
+control_logger.debug("after asking for resolution")
+
 while not quit:
     client, address = unix_socket.accept()
     raw = client.recv(1024)  # TODO: request the length first, to be able to send messages of arbitrary length

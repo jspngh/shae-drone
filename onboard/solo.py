@@ -1,9 +1,12 @@
 import math
 import logging
 import sys
+from MAVProxy.modules import mavproxy_gopro
+from MAVProxy.modules.lib import mp_module
 from pymavlink.mavutil import mavlink
 from dronekit import VehicleMode, Battery, SystemStatus, LocationGlobal, LocationGlobalRelative, time
 from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logging_level
+from GoProManager import GoProManager
 
 
 class Solo:
@@ -11,7 +14,14 @@ class Solo:
         """
         :type vehicle: Vehicle
         """
+        self.goproManager = GoProManager()
         self.vehicle = vehicle
+        # receive GoPro messages
+        self.vehicle.add_message_listener(name='GOPRO_GET_RESPONSE', fn=self.goproManager.get_response_callback)
+        self.vehicle.add_attribute_listener('gopro_status', self.goproManager.state_callback)
+        self.vehicle.add_attribute_listener('GOPRO_GET_RESPONSE', self.goproManager.get_response_callback)
+        self.vehicle.add_attribute_listener('gopro_set_response', self.goproManager.set_response_callback)
+
         self.fence_breach = False
         self.last_send_point = 0
         self.last_send_move = 0
@@ -264,18 +274,33 @@ class Solo:
         return
 
     def get_camera_resolution(self):
+        self.logger.debug("sending gopro mavlink message")
+        command = mavlink.GOPRO_COMMAND_VIDEO_SETTINGS
+        msg = self.vehicle.message_factory.gopro_get_request_encode(0,
+                                                                    mavlink.MAV_COMP_ID_GIMBAL,  # target system, target component
+                                                                    command)
+        self.vehicle.send_mavlink(msg)
+        self.vehicle.flush()
         return
 
     def set_camera_resolution(self, resolution):
         return
 
-    def control_gimbal(self, pitch, roll, yaw):
+    def control_gimbal(self, pitch=None, roll=None, yaw=None):
         self.logger.info("Operating Gimbal...")
         gmbl = self.vehicle.gimbal
+        if pitch is None:
+            pitch = gmbl.pitch()
+        if roll is None:
+            roll = gmbl.roll()
+        if yaw is None:
+            yaw = gmbl.yaw()
+
         while gmbl.pitch != pitch:
             gmbl.rotate(pitch, roll, yaw)
             print gmbl.pitch
             time.sleep(0.1)
+
         gmbl.release
         self.logger.info("Gimbal Operation Complete")
 
