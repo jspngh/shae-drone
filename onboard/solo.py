@@ -7,6 +7,7 @@ from pymavlink.mavutil import mavlink
 from dronekit import VehicleMode, Battery, SystemStatus, LocationGlobal, LocationGlobalRelative, time
 from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logging_level
 from GoProManager import GoProManager
+from GoProConstants import GOPRO_RESOLUTION, GOPRO_FRAME_RATE
 
 
 class Solo:
@@ -17,18 +18,22 @@ class Solo:
         self.goproManager = GoProManager()
         self.vehicle = vehicle
         # receive GoPro messages
-        self.vehicle.add_message_listener(name='GOPRO_GET_RESPONSE', fn=self.goproManager.get_response_callback)
         self.vehicle.add_attribute_listener('gopro_status', self.goproManager.state_callback)
-        self.vehicle.add_attribute_listener('GOPRO_GET_RESPONSE', self.goproManager.get_response_callback)
-        self.vehicle.add_attribute_listener('gopro_set_response', self.goproManager.set_response_callback)
+        self.vehicle.add_attribute_listener(attr_name='GOPRO_GET_RESPONSE', observer=self.goproManager.get_response_callback)
+        self.vehicle.add_message_listener(name='GOPRO_GET_RESPONSE', fn=self.goproManager.get_response_callback)
+        self.vehicle.add_attribute_listener('GOPRO_SET_RESPONSE', self.goproManager.set_response_callback)
 
         self.fence_breach = False
         self.last_send_point = 0
         self.last_send_move = 0
         self.last_send_translate = 0
+
         self.update_rate = update_rate
         self.height = height
         self.speed = speed
+        self.camera_fps = None
+        self.camera_resolution = None
+        self.camera_angle = None
         self.drone_type = DroneType('3DR', 'Solo')
 
         # set up self.logger
@@ -268,7 +273,45 @@ class Solo:
         return
 
     def get_camera_fps(self):
-        return
+        self.logger.debug("sending gopro mavlink message")
+        command = mavlink.GOPRO_COMMAND_VIDEO_SETTINGS
+        msg = self.vehicle.message_factory.gopro_get_request_encode(0,
+                                                                    mavlink.MAV_COMP_ID_GIMBAL,  # target system, target component
+                                                                    command)
+        self.vehicle.send_mavlink(msg)
+        self.vehicle.flush()
+
+        # wait some time for the video settings to be updated
+        time.sleep(1)
+        num_frame_rate = self.goproManager.videoFrameRate
+        if num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_12:
+            return 12
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_15:
+            return 15
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_24:
+            return 24
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_25:
+            return 25
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_30:
+            return 30
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_48:
+            return 48
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_50:
+            return 50
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_60:
+            return 60
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_80:
+            return 80
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_90:
+            return 90
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_100:
+            return 100
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_120:
+            return 120
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_240:
+            return 250
+        else:
+            return 0  # something went wrong
 
     def set_camera_fps(self, fps):
         return
@@ -281,7 +324,24 @@ class Solo:
                                                                     command)
         self.vehicle.send_mavlink(msg)
         self.vehicle.flush()
-        return
+
+        # wait some time for the video settings to be updated
+        time.sleep(1)
+        num_resolution = self.goproManager.videoResolution
+        # we will only handle a subpart of all available resolutions
+        # the others will not be used
+        if num_resolution == GOPRO_RESOLUTION.GOPRO_RESOLUTION_480p:
+            return 480
+        elif num_resolution == GOPRO_RESOLUTION.GOPRO_RESOLUTION_720p:
+            return 720
+        elif num_resolution == GOPRO_RESOLUTION.GOPRO_RESOLUTION_960p:
+            return 960
+        elif num_resolution == GOPRO_RESOLUTION.GOPRO_RESOLUTION_1080p:
+            return 1080
+        elif num_resolution == GOPRO_RESOLUTION.GOPRO_RESOLUTION_1440p:
+            return 1440
+        else:
+            return 0  # something went wrong
 
     def set_camera_resolution(self, resolution):
         return

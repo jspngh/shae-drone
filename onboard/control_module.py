@@ -44,7 +44,8 @@ nav_thread = NavigationHandler.NavigationThread(1, solo=s, waypoint_queue=waypoi
 nav_thread.start()
 
 control_logger.debug("asking for resolution")
-s.get_camera_resolution()
+resp = s.get_camera_resolution()
+print "camera resolution: {0}".format(resp)
 control_logger.debug("after asking for resolution")
 
 while not quit:
