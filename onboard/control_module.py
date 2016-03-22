@@ -39,7 +39,7 @@ except OSError:
 unix_socket.bind("/tmp/uds_control")
 unix_socket.listen(1)
 
-nav_thread = NavigationHandler.NavigationThread(1, solo=s, waypoint_queue=waypoint_queue, lock=lock, quit=quit)
+nav_thread = NavigationHandler.NavigationThread(1, solo=s, waypoint_queue=waypoint_queue, quit=quit)
 nav_thread.start()
 
 while not quit:
@@ -56,7 +56,7 @@ while not quit:
         message = packet['Message']           # the 'message' attribute tells what packet it is, within it's class
         if (message_type == "navigation"):
             control_logger.info("received a navigation request")
-            nav_handler = NavigationHandler(packet, message, s, waypoint_queue, lock)
+            nav_handler = NavigationHandler(packet, message, s, waypoint_queue)
             nav_handler.handle_packet()
             client.send(struct.pack(">I", 200))
         elif (message_type == "status"):
