@@ -7,7 +7,7 @@ import sys
 from threading import RLock
 from dronekit import connect, time
 from solo import Solo
-from global_classes import SIM, logging_level
+from global_classes import SIM, logging_level, WayPointQueue
 from navigation_handler import NavigationHandler
 from settings_handler import SettingsHandler
 from status_handler import StatusHandler
@@ -29,8 +29,7 @@ else:
     s = Solo(vehicle=vehicle)
 
 quit = False
-waypoint_queue = []  # in this queue, the waypoints the drone has to visit will come
-lock = RLock()  # this lock will be used when accessing the waypoint_queue
+waypoint_queue = WayPointQueue()  # in this queue, the waypoints the drone has to visit will come
 unix_socket = socket.socket(socket.AF_UNIX,      # Unix Domain Socket
                             socket.SOCK_STREAM)  # TCP
 try:
@@ -42,11 +41,6 @@ unix_socket.listen(1)
 
 nav_thread = NavigationHandler.NavigationThread(1, solo=s, waypoint_queue=waypoint_queue, lock=lock, quit=quit)
 nav_thread.start()
-
-control_logger.debug("asking for resolution")
-resp = s.get_camera_resolution()
-print "camera resolution: {0}".format(resp)
-control_logger.debug("after asking for resolution")
 
 while not quit:
     client, address = unix_socket.accept()

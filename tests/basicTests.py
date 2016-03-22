@@ -4,7 +4,7 @@ import socket
 import struct
 import sys
 sys.path.append('../onboard/')
-from solo import WayPoint, Location, WayPointEncoder
+from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue
 from navigation_handler import NavigationHandler
 
 
@@ -45,6 +45,19 @@ class BasicTests(unittest.TestCase):
         response = struct.unpack(">I", raw_response)[0]
         control_socket.close()
         self.assertEqual(response, 200)
+
+    def test_waypoint_queue(self):
+        random_list = [4, 3, 6, 1, 5, 2, 3]
+        sorted_list = [1, 2, 3, 3, 4, 5, 6]
+        wpq = WayPointQueue()
+        for i in random_list:
+            wp = WayPoint(location=Location(longitude=i, latitude=i), order=i)
+            wpq.insert_waypoint(wp)
+        wpq.sort_waypoints()
+        for wp in wpq.queue:
+            print wp.order
+        for i, wp in enumerate(wpq.queue):
+            self.assertEqual(wp.order, sorted_list[i])
 
 if __name__ == '__main__':
     unittest.main()

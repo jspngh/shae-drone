@@ -7,24 +7,23 @@ import logging
 import sys
 from logging import Logger
 from global_classes import logging_level
-from threading import RLock
 from dronekit import connect, time
-from solo import Solo, Location, WayPoint, WayPointEncoder
+from solo import Solo
+from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue
 
 
 class NavigationHandler():
     """
     This class will take care of packets of the 'navigation' message type
     """
-    def __init__(self, packet, message, solo, queue, lock):
+    def __init__(self, packet, message, solo, queue):
         """
         :type solo: Solo
-        :type lock: RLock
+        :type queue: WayPointQueue
         """
         self.packet = packet
         self.message = message
         self.solo = solo
-        self.lock = lock  # this lock will be used when accessing the waypoint_queue
         self.waypoint_queue = queue
 
         # set up logging
@@ -57,17 +56,16 @@ class NavigationHandler():
         This class will run in another thread
         and fly to the waypoints in the waypoint_queue
         """
-        def __init__(self, threadID, solo, waypoint_queue, lock, quit):
+        def __init__(self, threadID, solo, waypoint_queue, quit):
             """
             :type solo: Solo
-            :type lock: RLock
+            :type waypoint_queue: WayPointQueue
             :type quit: bool
             """
             threading.Thread.__init__(self)
             self.threadID = threadID
             self.solo = solo
             self.waypoint_queue = waypoint_queue
-            self.lock = lock  # this lock will be used when accessing the waypoint_queue
             self.quit = quit
 
             # set up logging
@@ -84,10 +82,7 @@ class NavigationHandler():
                 if not self.waypoint_queue:
                     time.sleep(1)
                 else:
-                    self.lock.acquire()
-                    waypoint = self.waypoint_queue[0]
-                    del self.waypoint_queue[0]
-                    self.lock.release()
+                    waypoint = self.waypoint_queue.remove_waypoint()
 
                     self.logger.info("Visiting waypoint...")
                     self.solo.visit_waypoint(waypoint)
@@ -95,14 +90,13 @@ class NavigationHandler():
                     time.sleep(0.1)
 
     class PathHandler():
-        def __init__(self, packet, waypoint_queue, lock, logger):
+        def __init__(self, packet, waypoint_queue, logger):
             """
-            :type lock: RLock
+            :type waypoint_queue: WayPointQueue
             :type logger: Logger
             """
             self.packet = packet
             self.waypoint_queue = waypoint_queue
-            self.lock = lock  # this lock will be used when accessing the waypoint_queue
             self.logger = logger
 
         def handle_packet(self):
@@ -116,9 +110,9 @@ class NavigationHandler():
                 waypoint = WayPoint(location=location, order=json_waypoint['Order'])
 
                 self.logger.info("Adding waypoint...")
-                self.lock.acquire()
-                self.waypoint_queue.append(waypoint)
-                self.lock.release()
+                self.waypoint_queue.insert_waypoint(waypoint)
+            # sort waypoints on order
+            self.waypoint_queue.sort_waypoints()
 
     class StartHandler():
         def __init__(self, packet, solo, logger):

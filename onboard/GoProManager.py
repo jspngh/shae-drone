@@ -1,15 +1,12 @@
 #
 # This file handles GoPro commands and holds GoPro state
 #
-import Queue
 import threading
 import struct
-import time
 import yaml
 import sys
 import logging
 from pymavlink import mavutil
-import app_packet
 from GoProConstants import *
 from global_classes import logging_level
 
@@ -21,69 +18,49 @@ handler.setLevel(logging_level)
 logger.addHandler(handler)
 logger.setLevel(logging_level)
 
-# tuple of message types that we handle
-GOPROMESSAGES = \
-    (
-        app_packet.GOPRO_SET_ENABLED,
-        app_packet.GOPRO_SET_REQUEST,
-        app_packet.GOPRO_RECORD,
-        app_packet.GOPRO_REQUEST_STATE,
-        app_packet.GOPRO_SET_EXTENDED_REQUEST
-    )
+VALID_GET_COMMANDS = (mavutil.mavlink.GOPRO_COMMAND_POWER,
+                      mavutil.mavlink.GOPRO_COMMAND_CAPTURE_MODE,
+                      mavutil.mavlink.GOPRO_COMMAND_BATTERY,
+                      mavutil.mavlink.GOPRO_COMMAND_MODEL,
+                      mavutil.mavlink.GOPRO_COMMAND_VIDEO_SETTINGS,
+                      mavutil.mavlink.GOPRO_COMMAND_LOW_LIGHT,
+                      mavutil.mavlink.GOPRO_COMMAND_PHOTO_RESOLUTION,
+                      mavutil.mavlink.GOPRO_COMMAND_PHOTO_BURST_RATE,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE_WHITE_BALANCE,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE_COLOUR,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE_GAIN,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE_SHARPNESS,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE_EXPOSURE,
+                      mavutil.mavlink.GOPRO_COMMAND_TIME,
+                      mavutil.mavlink.GOPRO_COMMAND_CHARGING)
 
-# see https://docs.google.com/document/d/1CcYOCZRw9C4sIQu4xDXjPMkxZYROmTLB0EtpZamnq74/edit#heading=h.y6z65lvic5q5
-VALID_GET_COMMANDS = \
-    (
-        mavutil.mavlink.GOPRO_COMMAND_POWER,
-        mavutil.mavlink.GOPRO_COMMAND_CAPTURE_MODE,
-        mavutil.mavlink.GOPRO_COMMAND_BATTERY,
-        mavutil.mavlink.GOPRO_COMMAND_MODEL,
-        mavutil.mavlink.GOPRO_COMMAND_VIDEO_SETTINGS,
-        mavutil.mavlink.GOPRO_COMMAND_LOW_LIGHT,
-        mavutil.mavlink.GOPRO_COMMAND_PHOTO_RESOLUTION,
-        mavutil.mavlink.GOPRO_COMMAND_PHOTO_BURST_RATE,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_WHITE_BALANCE,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_COLOUR,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_GAIN,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_SHARPNESS,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_EXPOSURE,
-        mavutil.mavlink.GOPRO_COMMAND_TIME,
-        mavutil.mavlink.GOPRO_COMMAND_CHARGING,
-    )
+VALID_SET_COMMANDS = (mavutil.mavlink.GOPRO_COMMAND_POWER,
+                      mavutil.mavlink.GOPRO_COMMAND_CAPTURE_MODE,
+                      mavutil.mavlink.GOPRO_COMMAND_SHUTTER,
+                      mavutil.mavlink.GOPRO_COMMAND_VIDEO_SETTINGS,
+                      mavutil.mavlink.GOPRO_COMMAND_LOW_LIGHT,
+                      mavutil.mavlink.GOPRO_COMMAND_PHOTO_RESOLUTION,
+                      mavutil.mavlink.GOPRO_COMMAND_PHOTO_BURST_RATE,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE_WHITE_BALANCE,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE_COLOUR,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE_GAIN,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE_SHARPNESS,
+                      mavutil.mavlink.GOPRO_COMMAND_PROTUNE_EXPOSURE,
+                      mavutil.mavlink.GOPRO_COMMAND_TIME,
+                      mavutil.mavlink.GOPRO_COMMAND_CHARGING)
 
-VALID_SET_COMMANDS = \
-    (
-        mavutil.mavlink.GOPRO_COMMAND_POWER,
-        mavutil.mavlink.GOPRO_COMMAND_CAPTURE_MODE,
-        mavutil.mavlink.GOPRO_COMMAND_SHUTTER,
-        mavutil.mavlink.GOPRO_COMMAND_VIDEO_SETTINGS,
-        mavutil.mavlink.GOPRO_COMMAND_LOW_LIGHT,
-        mavutil.mavlink.GOPRO_COMMAND_PHOTO_RESOLUTION,
-        mavutil.mavlink.GOPRO_COMMAND_PHOTO_BURST_RATE,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_WHITE_BALANCE,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_COLOUR,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_GAIN,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_SHARPNESS,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_EXPOSURE,
-        mavutil.mavlink.GOPRO_COMMAND_TIME,
-        mavutil.mavlink.GOPRO_COMMAND_CHARGING,
-    )
-
-REQUERY_COMMANDS = \
-    (
-        mavutil.mavlink.GOPRO_COMMAND_VIDEO_SETTINGS,
-        mavutil.mavlink.GOPRO_COMMAND_LOW_LIGHT,
-        mavutil.mavlink.GOPRO_COMMAND_PHOTO_RESOLUTION,
-        mavutil.mavlink.GOPRO_COMMAND_PHOTO_BURST_RATE,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_WHITE_BALANCE,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_COLOUR,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_GAIN,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_SHARPNESS,
-        mavutil.mavlink.GOPRO_COMMAND_PROTUNE_EXPOSURE,
-    )
+REQUERY_COMMANDS = (mavutil.mavlink.GOPRO_COMMAND_VIDEO_SETTINGS,
+                    mavutil.mavlink.GOPRO_COMMAND_LOW_LIGHT,
+                    mavutil.mavlink.GOPRO_COMMAND_PHOTO_RESOLUTION,
+                    mavutil.mavlink.GOPRO_COMMAND_PHOTO_BURST_RATE,
+                    mavutil.mavlink.GOPRO_COMMAND_PROTUNE,
+                    mavutil.mavlink.GOPRO_COMMAND_PROTUNE_WHITE_BALANCE,
+                    mavutil.mavlink.GOPRO_COMMAND_PROTUNE_COLOUR,
+                    mavutil.mavlink.GOPRO_COMMAND_PROTUNE_GAIN,
+                    mavutil.mavlink.GOPRO_COMMAND_PROTUNE_SHARPNESS,
+                    mavutil.mavlink.GOPRO_COMMAND_PROTUNE_EXPOSURE)
 
 
 class GoProManager():
