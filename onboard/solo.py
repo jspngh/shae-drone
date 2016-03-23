@@ -1,8 +1,6 @@
 import math
 import logging
 import sys
-from MAVProxy.modules import mavproxy_gopro
-from MAVProxy.modules.lib import mp_module
 from pymavlink.mavutil import mavlink
 from dronekit import VehicleMode, Battery, SystemStatus, LocationGlobal, LocationGlobalRelative, time
 from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logging_level

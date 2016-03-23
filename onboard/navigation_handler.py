@@ -37,7 +37,7 @@ class NavigationHandler():
 
     def handle_packet(self):
         if (self.message == "path"):
-            handler = self.PathHandler(self.packet, waypoint_queue=self.waypoint_queue, lock=self.lock, logger=self.nav_logger)
+            handler = self.PathHandler(self.packet, waypoint_queue=self.waypoint_queue, logger=self.nav_logger)
             handler.handle_packet()
         elif (self.message == "start"):
             handler = self.StartHandler(self.packet, self.solo, logger=self.nav_logger)
@@ -56,17 +56,16 @@ class NavigationHandler():
         This class will run in another thread
         and fly to the waypoints in the waypoint_queue
         """
-        def __init__(self, threadID, solo, waypoint_queue, quit):
+        def __init__(self, threadID, solo, waypoint_queue):
             """
             :type solo: Solo
             :type waypoint_queue: WayPointQueue
-            :type quit: bool
             """
             threading.Thread.__init__(self)
             self.threadID = threadID
             self.solo = solo
             self.waypoint_queue = waypoint_queue
-            self.quit = quit
+            self.quit = False
 
             # set up logging
             self.logger = logging.getLogger("Navigation Thread")
@@ -78,16 +77,20 @@ class NavigationHandler():
             self.logger.setLevel(logging_level)
 
         def run(self):
-            while True:
-                if not self.waypoint_queue:
+            while not self.quit:
+                if self.waypoint_queue.is_empty():
                     time.sleep(1)
                 else:
+                    self.logger.debug("Getting waypoint")
                     waypoint = self.waypoint_queue.remove_waypoint()
 
                     self.logger.info("Visiting waypoint...")
                     self.solo.visit_waypoint(waypoint)
                     self.logger.info("Waypoint visited")
                     time.sleep(0.1)
+
+        def stop_thread(self):
+            self.quit = True
 
     class PathHandler():
         def __init__(self, packet, waypoint_queue, logger):
@@ -113,6 +116,7 @@ class NavigationHandler():
                 self.waypoint_queue.insert_waypoint(waypoint)
             # sort waypoints on order
             self.waypoint_queue.sort_waypoints()
+            self.logger.info("Sorted the waypoints...")
 
     class StartHandler():
         def __init__(self, packet, solo, logger):

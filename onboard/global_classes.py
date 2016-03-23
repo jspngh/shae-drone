@@ -2,8 +2,16 @@ import logging
 from json import JSONEncoder
 from threading import RLock
 
-SIM = False
+SIM = True
 logging_level = logging.DEBUG
+
+
+class MessageCodes():
+    ACK = 200
+    STATUS_RESPONSE = 300
+    HEARTBEAT_REQUEST = 400
+    START_HEARTBEAT = 404
+    ERR = 500
 
 
 class DroneType():
@@ -28,7 +36,7 @@ class Location():
 class LocationEncoder(JSONEncoder):
     def default(self, loc):
         loc = {'Latitude': loc.latitude, 'Longitude': loc.longitude}
-        return {'current_location': loc}
+        return loc
 
 
 class WayPoint():
@@ -100,3 +108,9 @@ class WayPointQueue():
                 else:
                     last_wp_ord = wp_ord
         self.queue_lock.release()
+
+    def is_empty(self):
+        self.queue_lock.acquire()
+        result = not self.queue
+        self.queue_lock.release()
+        return result
