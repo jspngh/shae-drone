@@ -37,6 +37,7 @@ class NavigationHandler():
 
     def handle_packet(self):
         if (self.message == "path"):
+            self.nav_logger.debug("Handling path message")
             handler = self.PathHandler(self.packet, waypoint_queue=self.waypoint_queue, logger=self.nav_logger)
             handler.handle_packet()
         elif (self.message == "start"):
@@ -103,10 +104,10 @@ class NavigationHandler():
             self.logger = logger
 
         def handle_packet(self):
-            if 'Path' not in self.packet:
+            if 'Waypoints' not in self.packet:
                 raise ValueError
 
-            waypoints = self.packet['Path']
+            waypoints = self.packet['Waypoints']
             for json_waypoint in waypoints:
                 json_location = json_waypoint['Location']
                 location = Location(longitude=float(json_location['Longitude']), latitude=float(json_location['Latitude']))

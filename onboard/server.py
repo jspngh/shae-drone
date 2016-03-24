@@ -25,6 +25,7 @@ class ControlThread (threading.Thread):
 
     def run(self):
         self.control_socket.connect("/tmp/uds_control")
+        self.control_socket.send(struct.pack(">I", len(self.data)))
         self.control_socket.send(self.data)
         raw_response = self.control_socket.recv(4)
         status_code = struct.unpack(">I", raw_response)[0]
@@ -135,8 +136,12 @@ heartbeat_thread = HeartBeatThread(0)
 
 while not quit:
     client, address = serversocket.accept()
-    raw = client.recv(1024)  # buffer size is 1024 bytes
+    length = client.recv(4)
+    if length is not None:
+        buffersize = struct.unpack(">I", length)[0]
+    raw = client.recv(buffersize)
     server_logger.info("server received a message")
+    server_logger.info(raw)
     control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
     control_thread = ControlThread(1, raw, control_socket=control_socket, client_socket=client, heartbeat_thread=heartbeat_thread)
     control_thread.start()

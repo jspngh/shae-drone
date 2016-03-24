@@ -9,7 +9,7 @@ from GoProConstants import GOPRO_RESOLUTION, GOPRO_FRAME_RATE
 
 
 class Solo:
-    def __init__(self, vehicle, height=3, speed=10, update_rate=15):
+    def __init__(self, vehicle, height=5, speed=10, update_rate=15):
         """
         :type vehicle: Vehicle
         """

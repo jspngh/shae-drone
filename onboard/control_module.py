@@ -45,23 +45,30 @@ nav_thread.start()
 
 while not quit:
     client, address = unix_socket.accept()
-    raw = client.recv(1024)  # TODO: request the length first, to be able to send messages of arbitrary length
     try:
+        length = client.recv(4)
+        if length is None:
+            control_logger.info("Length is None")
+            raise ValueError
+        buffersize = struct.unpack(">I", length)[0]
+        raw = client.recv(buffersize)
         packet = json.loads(raw)  # parse the Json we received
         if 'MessageType' not in packet:  # every packet should have a MessageType field
+            control_logger.info("every packet should have a MessageType field")
             raise ValueError
         if 'Message' not in packet:  # every packet should have a Message field
+            control_logger.info("every packet should have a Message field")
             raise ValueError
 
         message_type = packet['MessageType']  # the 'message type' attribute tells us to which class of packet this packet belongs
         message = packet['Message']           # the 'message' attribute tells what packet it is, within it's class
         if (message_type == "navigation"):
-            # control_logger.info("received a navigation request")
+            control_logger.info("received a navigation request")
             nav_handler = NavigationHandler(packet, message, s, waypoint_queue)
             nav_handler.handle_packet()
             client.send(struct.pack(">I", MessageCodes.ACK))
         elif (message_type == "status"):
-            # control_logger.info("received a status request")
+            control_logger.info("received a status request")
             stat_handler = StatusHandler(packet, message, s, waypoint_queue)
             response = stat_handler.handle_packet()
             if response is None:
@@ -71,7 +78,7 @@ while not quit:
                 client.send(struct.pack(">I", len(response)))
                 client.send(response)
         elif (message_type == "settings"):
-            # control_logger.info("received a settings request")
+            control_logger.info("received a settings request")
             sett_handler = SettingsHandler(packet, message, s)
             response = sett_handler.handle_packet()
             # if we got a response, that means we need to start sending heartbeats
@@ -90,4 +97,5 @@ while not quit:
 
     except ValueError:
         # TODO: handle error
+        control_logger.info("We might have a little problem")
         client.send(struct.pack(">I", MessageCodes.ERR))

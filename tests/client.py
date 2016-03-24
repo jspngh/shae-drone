@@ -6,14 +6,14 @@ import sys
 sys.path.append('../onboard/')
 from global_classes import Location, WayPoint, WayPointEncoder
 
-HOST = "localhost"
+HOST = "10.1.1.10"
 PORT = 6330
 
 waypoints = []
 # for i in range(0, 4):
-tmp_loc_1 = Location(latitude=50.991725, longitude=3.746529)
-tmp_loc_2 = Location(latitude=50.992111, longitude=3.748447)
-tmp_loc_3 = Location(latitude=50.990707, longitude=3.751409)
+tmp_loc_1 = Location(latitude=51.022721, longitude=3.709819)
+tmp_loc_2 = Location(latitude=51.022480, longitude=3.709903)
+tmp_loc_3 = Location(latitude=51.022788, longitude=3.710054)
 waypoints.append(WayPoint(location=tmp_loc_1, order=1))
 waypoints.append(WayPoint(location=tmp_loc_2, order=2))
 waypoints.append(WayPoint(location=tmp_loc_3, order=3))
@@ -44,16 +44,16 @@ ack = struct.unpack(">I", data)[0]
 print ack
 time.sleep(4)
 
-sock = socket.socket(socket.AF_INET,  # Internet
-                     socket.SOCK_STREAM)  # TCP
-# Connect to server and send data
-sock.connect((HOST, PORT))
-sock.send(json_config_message)
-print "message sent"
-data = sock.recv(4)
-ack = struct.unpack(">I", data)[0]
-print ack
-time.sleep(4)
+# sock = socket.socket(socket.AF_INET,  # Internet
+#                      socket.SOCK_STREAM)  # TCP
+# # Connect to server and send data
+# sock.connect((HOST, PORT))
+# sock.send(json_config_message)
+# print "message sent"
+# data = sock.recv(4)
+# ack = struct.unpack(">I", data)[0]
+# print ack
+# time.sleep(4)
 
 sock = socket.socket(socket.AF_INET,  # Internet
                      socket.SOCK_STREAM)  # TCP
