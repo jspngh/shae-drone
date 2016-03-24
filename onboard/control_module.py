@@ -11,6 +11,9 @@ from global_classes import SIM, logging_level, MessageCodes, WayPointQueue
 from navigation_handler import NavigationHandler
 from settings_handler import SettingsHandler
 from status_handler import StatusHandler
+import sys
+sys.path.append('../')
+from simulator.vehicle_simulator import VehicleSimulator
 
 # set up logging
 control_logger = logging.getLogger("Control Module")
@@ -22,7 +25,8 @@ control_logger.addHandler(handler)
 control_logger.setLevel(logging_level)
 
 if SIM:
-    vehicle = connect('tcp:127.0.0.1:5760', wait_ready=True)
+    vehicle_simulator = VehicleSimulator()
+    vehicle = vehicle_simulator.get_vehicle()
     s = Solo(vehicle=vehicle)
 else:
     vehicle = connect('udpin:0.0.0.0:14550', wait_ready=True)

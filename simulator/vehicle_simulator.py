@@ -1,7 +1,8 @@
 from dronekit import connect, VehicleMode
 import time
 from dronekit_sitl import SITL
-
+from subprocess import Popen
+#from stream_simulator import StreamSimulator
 
 class VehicleSimulator():
     def __init__(self):
@@ -24,6 +25,9 @@ class VehicleSimulator():
             self.vehicle = connect(connection_string, wait_ready=True)
             print self.vehicle
             self.vehicle.wait_ready('autopilot_version')
+
+#	    stream_simulator = StreamSimulator()
+#	    stream_simulator.start
 
         return self.vehicle
 
