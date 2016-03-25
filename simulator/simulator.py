@@ -1,6 +1,7 @@
 import socket
-import json
-
+import simplejson as json
+import struct
+import sys
 
 def send_response(client, type):
     client.send('Response: Message with type "' + type + '" is correctly received!')
@@ -17,6 +18,11 @@ serversocket.listen(1)  # become a server socket, only 1 connection allowed
 
 while not quit:
     client, address = serversocket.accept()
+
+    buffer_size_unpacked = client.recv(4)
+    buffer_size = struct.unpack('>L', buffer_size_unpacked)[0]
+    print buffer_size
+
     raw = client.recv(1024)  # buffer size is 1024 bytes
     print 'message received'
 
