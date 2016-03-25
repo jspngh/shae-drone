@@ -73,9 +73,9 @@ class HeartBeatThread (threading.Thread):
             return
         print self.workstation_ip
         print self.workstation_port
-        self.workstation_socket.connect((self.workstation_port, self.workstation_ip))
+        self.workstation_socket.connect((self.workstation_ip, self.workstation_port,))
         print "Running heartbeat thread"
-        while not quit:
+        while not self.quit:
             control_socket = socket.socket(socket.AF_UNIX,      # Unix Domain Socket
                                            socket.SOCK_STREAM)  # TCP
             success = True
