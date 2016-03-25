@@ -21,13 +21,9 @@ class StreamSimulator:
         pay = gst.ElementFactory.make('rtpmp4vpay', None)
         address = gst.ElementFactory.make('udpsink', None)
 
-	if (not source or
-		not demux or
-		not queue or
-		not pay or
-		not address):
-		print 'Niet'
-		exit(-1)
+        if not (source and demux and queue and pay and address):
+            print 'Niet'
+            exit(-1)
 
         # Add properties to elements
         source.set_property('location', 'test_footage1.mp4')
@@ -55,8 +51,8 @@ class StreamSimulator:
         bus = pipeline.get_bus()
         msg = bus.timed_pop_filtered(gst.CLOCK_TIME_NONE, gst.MessageType.ERROR | gst.MessageType.EOS)
         err, debug = msg.parse_error()
-	print err
-	print debug
+        print err
+        print debug
 
         # Free resources.
         pipeline.set_state(gst.State.NULL)
