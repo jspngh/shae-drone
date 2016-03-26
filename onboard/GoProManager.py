@@ -1,12 +1,13 @@
 #
 # This file handles GoPro commands and holds GoPro state
 #
-import threading
-import struct
-import yaml
 import sys
+import yaml
+import struct
 import logging
+import threading
 from pymavlink import mavutil
+
 from GoProConstants import *
 from global_classes import logging_level
 

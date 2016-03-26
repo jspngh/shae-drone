@@ -2,9 +2,6 @@ import logging
 from json import JSONEncoder
 from threading import RLock
 
-SIM = True
-logging_level = logging.DEBUG
-
 
 class MessageCodes():
     ACK = 200

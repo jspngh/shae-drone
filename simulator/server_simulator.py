@@ -1,10 +1,7 @@
-from dronekit import Vehicle
+import sys
 import types
 import socket
-
-import sys
-sys.path.append('../')
-from onboard.server import Server
+from dronekit import Vehicle
 
 
 class ServerSimulatorMetaClass(type):

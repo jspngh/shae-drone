@@ -1,38 +1,25 @@
-import socket
-import simplejson as json
-import struct
 import sys
+import time
+import signal
+from subprocess import Popen, PIPE
 
-def send_response(client, type):
-    client.send('Response: Message with type "' + type + '" is correctly received!')
-    client.close()
 
-HOST = "127.0.0.1"
-PORT = 6330
-quit = False
+class Simulator:
+    def __init__(self):
+        self.server_process = Popen(['python2', '../onboard/server.py', '--level', 'debug', '--simulate'])
+        self.control_process = Popen(['python2', '../onboard/control_module.py', '-level', 'debug', '-simulate'])
 
-serversocket = socket.socket(socket.AF_INET,  # Internet
-                             socket.SOCK_STREAM)  # TCP
-serversocket.bind((HOST, PORT))
-serversocket.listen(1)  # become a server socket, only 1 connection allowed
+        # capture kill signals to send it to the subprocesses
+        signal.signal(signal.SIGINT, self.signal_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
 
-while not quit:
-    client, address = serversocket.accept()
+    def signal_handler(self, signal, frame):
+        print "Exiting simulator"
+        self.server_process.send_signal(sig=signal)
+        self.control_process.send_signal(sig=signal)
+        sys.exit(0)
 
-    buffer_size_unpacked = client.recv(4)
-    buffer_size = struct.unpack('>L', buffer_size_unpacked)[0]
-    print buffer_size
 
-    raw = client.recv(1024)  # buffer size is 1024 bytes
-    print 'message received'
-
-    try:
-        packet = json.loads(raw)  # parse the Json we received
-        if 'MessageType' not in packet:  # every packet should have a MessageType field
-            raise ValueError
-
-        message_type = packet['MessageType']  # the message type will decide which module we need to use
-        send_response(client, message_type)
-
-    except ValueError:
-        print "handle error"
+if __name__ == '__main__':
+    simulator = Simulator()
+    signal.pause()

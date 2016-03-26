@@ -1,11 +1,12 @@
+import sys
 import math
 import logging
-import sys
 from pymavlink.mavutil import mavlink
 from dronekit import VehicleMode, Battery, SystemStatus, LocationGlobal, LocationGlobalRelative, time
-from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logging_level
+
 from GoProManager import GoProManager
 from GoProConstants import GOPRO_RESOLUTION, GOPRO_FRAME_RATE
+from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logging_level
 
 
 class Solo:

@@ -1,13 +1,13 @@
 import os
+import sys
 import json
 import socket
 import struct
-import threading
 import logging
-import sys
+import threading
 from logging import Logger
-from global_classes import logging_level
 from dronekit import connect, time
+
 from solo import Solo
 from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue
 
@@ -16,7 +16,7 @@ class NavigationHandler():
     """
     This class will take care of packets of the 'navigation' message type
     """
-    def __init__(self, packet, message, solo, queue):
+    def __init__(self, packet, message, solo, queue, logging_level):
         """
         :type solo: Solo
         :type queue: WayPointQueue
@@ -57,7 +57,7 @@ class NavigationHandler():
         This class will run in another thread
         and fly to the waypoints in the waypoint_queue
         """
-        def __init__(self, threadID, solo, waypoint_queue):
+        def __init__(self, threadID, solo, waypoint_queue, logging_level):
             """
             :type solo: Solo
             :type waypoint_queue: WayPointQueue

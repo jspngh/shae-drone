@@ -10,15 +10,16 @@ import datetime
 from logging import Logger
 from threading import RLock
 from dronekit import connect, time
+
 from solo import Solo
-from global_classes import logging_level, DroneType, DroneTypeEncoder, Location, LocationEncoder, WayPoint, WayPointEncoder, WayPointQueue
+from global_classes import DroneType, DroneTypeEncoder, Location, LocationEncoder, WayPoint, WayPointEncoder, WayPointQueue
 
 
 class StatusHandler():
     """
     This class will take care of packets of the 'status' message type
     """
-    def __init__(self, packet, message, solo, queue):
+    def __init__(self, packet, message, solo, queue, logging_level):
         """
         :type solo: Solo
         :type queue: WayPointQueue

@@ -8,15 +8,16 @@ import logging
 from logging import Logger
 from threading import RLock
 from dronekit import connect, time
+
 from solo import Solo
-from global_classes import logging_level, Location, WayPoint, WayPointEncoder
+from global_classes import Location, WayPoint, WayPointEncoder
 
 
 class SettingsHandler():
     """
     This class will take care of packets of the 'settings' message type
     """
-    def __init__(self, packet, message, solo):
+    def __init__(self, packet, message, solo, logging_level):
         """
         :type solo: Solo
         """
