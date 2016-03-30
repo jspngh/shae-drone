@@ -12,7 +12,7 @@ from threading import RLock
 from dronekit import connect, time
 
 from solo import Solo
-from global_classes import DroneType, DroneTypeEncoder, Location, LocationEncoder, WayPoint, WayPointEncoder, WayPointQueue
+from global_classes import DroneType, DroneTypeEncoder, Location, LocationEncoder, WayPoint, WayPointEncoder, WayPointQueue, logformat, dateformat
 
 
 class StatusHandler():
@@ -31,8 +31,8 @@ class StatusHandler():
 
         # set up logging
         self.stat_logger = logging.getLogger("Status Handler")
-        formatter = logging.Formatter('[%(levelname)s] %(message)s')
-        handler = logging.StreamHandler(stream=sys.stdout)
+        formatter = logging.Formatter(logformat, datefmt=dateformat)
+        handler = logging.StreamHandler(stream=sys.stdout)  # TODO
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.stat_logger.addHandler(handler)
