@@ -74,30 +74,40 @@ class ControlThread (threading.Thread):
         self.control_socket.connect("/tmp/uds_control")
         self.control_socket.send(struct.pack(">I", len(self.data)))
         self.control_socket.send(self.data)
+
         raw_response = self.control_socket.recv(4)
         status_code = struct.unpack(">I", raw_response)[0]
+
+        response_message = None
+
         if status_code == MessageCodes.ACK or status_code == MessageCodes.ERR:  # let the client know if request succeeded or failed
-            response = bytearray(raw_response)
-            self.client_socket.send(response)
+            response_message = bytearray(raw_response)
 
         if status_code == MessageCodes.STATUS_RESPONSE:  # send the response to the client
             raw_length = self.control_socket.recv(4)
             response_length = struct.unpack(">I", raw_length)[0]
             response = self.control_socket.recv(response_length)
             response_length = bytearray(raw_length)
-            self.client_socket.send(response_length + response)
+            response_message = response_length + response
 
         if status_code == MessageCodes.START_HEARTBEAT:
             raw_length = self.control_socket.recv(4)
             response_length = struct.unpack(">I", raw_length)[0]
             host = self.control_socket.recv(response_length)
+
             raw_length = self.control_socket.recv(4)
             response_length = struct.unpack(">I", raw_length)[0]
             ip = self.control_socket.recv(response_length)
             ip = int(ip)
+
             self.heartbeat_thread.configure(ip, host)
             self.heartbeat_thread.start()
-            self.client_socket.send(struct.pack(">I", MessageCodes.ACK))
+
+            response_message = struct.pack(">I", MessageCodes.ACK)
+
+        # Send response message if it exists
+        if response_message is not None:
+            self.client_socket.send(response_message)
 
         self.control_socket.close()
         self.client_socket.close()
