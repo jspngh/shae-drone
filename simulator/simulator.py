@@ -18,9 +18,10 @@ class Simulator:
         time.sleep(2)
 
         self.stream_simulator = StreamSimulator()
+        # self.stream_simulator.start()
 
         self.server_process = Popen(['python2', '../onboard/server.py', '--level', 'debug', '--simulate'])
-        self.control_process = Popen(['python2', '../onboard/control_module.py', '-level', 'debug', '-simulate'])
+        self.control_process = Popen(['python2', '../onboard/control_module.py', '--level', 'debug', '--simulate'])
 
         # capture kill signals to send it to the subprocesses
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -28,9 +29,10 @@ class Simulator:
 
     def signal_handler(self, signal, frame):
         print "Exiting simulator"
+        self.sitl.stop()
         self.server_process.send_signal(sig=signal)
         self.control_process.send_signal(sig=signal)
-        self.sitl.stop()
+        self.stream_simulator.stop_thread()
         sys.exit(0)
 
 

@@ -1,6 +1,8 @@
-import logging
 from json import JSONEncoder
 from threading import RLock
+
+logformat = '[%(levelname)s] %(asctime)s in \'%(name)s\': %(message)s'
+dateformat = '%m-%d %H:%M:%S'
 
 
 class MessageCodes():

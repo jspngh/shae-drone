@@ -10,7 +10,7 @@ from threading import RLock
 from dronekit import connect, time
 
 from solo import Solo
-from global_classes import Location, WayPoint, WayPointEncoder
+from global_classes import Location, WayPoint, WayPointEncoder, logformat, dateformat
 
 
 class SettingsHandler():
@@ -27,8 +27,8 @@ class SettingsHandler():
 
         # set up logging
         self.settings_logger = logging.getLogger("Status Handler")
-        formatter = logging.Formatter('[%(levelname)s] %(message)s')
-        handler = logging.StreamHandler(stream=sys.stdout)
+        formatter = logging.Formatter(logformat, datefmt=dateformat)
+        handler = logging.StreamHandler(stream=sys.stdout)  # TODO
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.settings_logger.addHandler(handler)
@@ -41,8 +41,8 @@ class SettingsHandler():
                 config = self.packet['Configuration']
                 ip = config['IpAddress']
                 port = config['Port']  # keep the port as string for now
-                self.settings_logger.info("IP: " + ip)
-                self.settings_logger.info("Port: " + port)
+                self.settings_logger.info("IP: {0}".format(ip))
+                self.settings_logger.info("Port: {0}".format(port))
                 return (ip, port)
             else:                                       # this is an array with the attributes that were required
                 if not isinstance(self.message, list):  # if it is not a list, something went wrong
