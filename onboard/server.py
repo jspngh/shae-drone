@@ -77,7 +77,6 @@ class ControlThread (threading.Thread):
         raw_response = self.control_socket.recv(4)
         status_code = struct.unpack(">I", raw_response)[0]
         if status_code == MessageCodes.ACK or status_code == MessageCodes.ERR:  # let the client know if request succeeded or failed
-            self.control_socket.close()
             response = bytearray(raw_response)
             self.client_socket.send(response)
 
