@@ -233,7 +233,7 @@ class Solo:
                 return
 
     def get_battery_level(self):
-        batt = self.vehicle.battery()
+        batt = self.vehicle.battery
         return batt.level
 
     def get_drone_type(self):
