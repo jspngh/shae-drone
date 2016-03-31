@@ -33,7 +33,7 @@ class StreamSimulator(threading.Thread):
 
         try:
             self.videosocket.bind(("127.0.0.1", 5502))
-            self.videosocket.settimeout(5)
+            self.videosocket.settimeout(2.5)
             self.videosocket.listen(1)
             self.quit = False
 
@@ -43,23 +43,21 @@ class StreamSimulator(threading.Thread):
 
     def run(self):
         # first wait for a connection, then start streaming
-        while not self.quit:
-            self.quit = True
+        connected = False
+        while not (connected or self.quit):
             try:
                 client, address = self.videosocket.accept()
+                connected = True
             except socket.timeout:
-                self.quit = False
                 pass
-        self.logger.debug("Starting stream")
-        footage = 'testfootage.mp4'
-        options = "sout=#rtp{dst=127.0.0.1,port=5000,ptype-video=96,mux=ts}"
-        media = self.Instance.media_new(footage, options)
-        self.player.set_media(media)
-        self.player.play()
 
-        # 5 is the 'stopped' state, 6 is the 'ended' state
-        while (not self.quit):
-            time.sleep(2)
+        if not self.quit:
+            self.logger.debug("Starting stream")
+            footage = '../videos/testfootage.mp4'
+            options = "sout=#rtp{dst=127.0.0.1,port=5000,ptype-video=96,mux=ts}"
+            media = self.Instance.media_new(footage, options)
+            self.player.set_media(media)
+            self.player.play()
 
     def stop_thread(self):
         self.logger.debug("Stopping streamsimulator")
