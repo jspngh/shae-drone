@@ -97,7 +97,6 @@ class ControlThread (threading.Thread):
         status_code = struct.unpack(">I", raw_response)[0]
         self.logger.debug("response has statuscode {0}".format(status_code))
         if status_code == MessageCodes.ACK or status_code == MessageCodes.ERR:  # let the client know if request succeeded or failed
-            self.control_socket.close()
             response = bytearray(raw_response)
             self.client_socket.send(struct.pack(">H", status_code))
 
@@ -106,6 +105,7 @@ class ControlThread (threading.Thread):
             response_length = struct.unpack(">I", raw_length)[0]
             response = self.control_socket.recv(response_length)
             response_length = bytearray(raw_length)
+
             self.client_socket.send(struct.pack(">H", status_code))
             self.client_socket.send(struct.pack(">H", response_length + 4))
             self.client_socket.send(response_length + response)
