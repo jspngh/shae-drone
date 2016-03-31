@@ -104,11 +104,10 @@ class ControlThread (threading.Thread):
             raw_length = self.control_socket.recv(4)
             response_length = struct.unpack(">I", raw_length)[0]
             response = self.control_socket.recv(response_length)
-            response_length = bytearray(raw_length)
 
             self.client_socket.send(struct.pack(">H", status_code))
             self.client_socket.send(struct.pack(">H", response_length + 4))
-            self.client_socket.send(response_length + response)
+            self.client_socket.send(bytearray(response_length) + response)
 
         if status_code == MessageCodes.START_HEARTBEAT:
             raw_length = self.control_socket.recv(4)
