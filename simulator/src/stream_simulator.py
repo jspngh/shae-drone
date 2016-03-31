@@ -49,7 +49,7 @@ class StreamSimulator(threading.Thread):
             except socket.timeout:
                 pass
 
-        if not quit:
+        if not self.quit:
             self.logger.debug("Starting stream")
             footage = '../videos/testfootage.mp4'
             options = "sout=#rtp{dst=127.0.0.1,port=5000,ptype-video=96,mux=ts}"
