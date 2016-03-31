@@ -49,7 +49,7 @@ class NavigationHandler():
         else:
             raise ValueError  # if we get to this point, something went wrong
 
-        if handle not None:
+        if handler is not None:
             handler.handle_packet()
 
     class NavigationThread (threading.Thread):
