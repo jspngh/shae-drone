@@ -19,6 +19,7 @@ class Server():
         :type SIM: bool
         """
         self.logger = logger
+        self.heartbeat_thread = None
 
         if SIM:
             self.HOST = "localhost"
