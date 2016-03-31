@@ -185,6 +185,7 @@ class HeartBeatThread (threading.Thread):
         self.workstation_port = port
 
     def stop_thread(self):
+        self.logger.debug("Stopping heartbeat thread")
         self.quit = False
 
 

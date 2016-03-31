@@ -18,7 +18,7 @@ class Simulator:
         time.sleep(2)
 
         self.stream_simulator = StreamSimulator()
-        # self.stream_simulator.start()
+        self.stream_simulator.start()
 
         self.server_process = Popen(['python2', '../onboard/server.py', '--level', 'debug', '--simulate'])
         self.control_process = Popen(['python2', '../onboard/control_module.py', '--level', 'debug', '--simulate'])
