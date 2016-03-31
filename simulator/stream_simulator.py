@@ -25,7 +25,7 @@ class StreamSimulator(threading.Thread):
         self.logger.setLevel(logging.DEBUG)
 
         threading.Thread.__init__(self)
-        self.Instance = vlc.Instance('--input-repeat=-1')
+        self.Instance = vlc.Instance('--input-repeat=-1')  # loop the testfootage
         self.player = self.Instance.media_player_new()
         self.videosocket = socket.socket(socket.AF_INET,      # Internet
                                          socket.SOCK_STREAM)  # TCP
@@ -62,3 +62,5 @@ class StreamSimulator(threading.Thread):
     def stop_thread(self):
         self.logger.debug("Stopping streamsimulator")
         self.quit = True
+        self.player.stop()
+        self.Instance.release()

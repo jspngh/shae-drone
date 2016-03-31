@@ -66,6 +66,7 @@ class Server():
 
     def close(self):
         self.quit = True
+        self.logger.debug("Stopping the server")
         if self.heartbeat_thread is not None:
             self.heartbeat_thread.stop_thread()
 
@@ -149,7 +150,6 @@ class HeartBeatThread (threading.Thread):
 
             control_socket = socket.socket(socket.AF_UNIX,      # Unix Domain Socket
                                            socket.SOCK_STREAM)  # TCP
-            success = True
             try:
                 control_socket.connect("/tmp/uds_control")
                 hb_req = {'MessageType': 'status', 'Message': 'heartbeat'}
@@ -165,19 +165,23 @@ class HeartBeatThread (threading.Thread):
                     response = control_socket.recv(response_length)
                     response_length = bytearray(raw_length)
                     self.logger.debug("heartbeat: {0}".format(response))
-                    workstation_socket.connect((self.workstation_ip, self.workstation_port))
-                    workstation_socket.send(struct.pack(">H", len(response) + 4))
-                    workstation_socket.send(response_length + response)
+
+                    try:
+                        workstation_socket.connect((self.workstation_ip, self.workstation_port))
+                        workstation_socket.send(struct.pack(">H", len(response) + 4))
+                        workstation_socket.send(response_length + response)
+                    except socket.error:
+                        self.logger.debug("Could not connect to the workstation")
+                        self.stop_thread()
+
                 # close the connection
                 control_socket.close()
                 workstation_socket.close()
             except socket.error, msg:
-                print "got a socket error:", msg
-                # success = False
+                self.logger.debug("Socket error: {0}".format(msg))
 
-            if success:
-                # sleep 500ms before requesting another heartbeat
-                time.sleep(2)  # time/sleep(0.5)
+            # sleep 500ms before requesting another heartbeat
+            time.sleep(2)  # time.sleep(0.5)
 
     def configure(self, host, port):
         self.workstation_ip = host
@@ -185,7 +189,7 @@ class HeartBeatThread (threading.Thread):
 
     def stop_thread(self):
         self.logger.debug("Stopping heartbeat thread")
-        self.quit = False
+        self.quit = True
 
 
 def print_help():
