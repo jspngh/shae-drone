@@ -15,13 +15,13 @@ class Simulator:
         self.sitl.launch(sitl_args, await_ready=True, restart=True)
 
         # TODO: test if waiting for sitl here is necessary
-        time.sleep(2)
+#        time.sleep(2)
 
         self.stream_simulator = StreamSimulator()
         self.stream_simulator.start()
 
-        self.server_process = Popen(['python2', '../onboard/server.py', '--level', 'debug', '--simulate'])
-        self.control_process = Popen(['python2', '../onboard/control_module.py', '--level', 'debug', '--simulate'])
+        self.server_process = Popen(['python2', '../../onboard/server.py', '--level', 'debug', '--simulate'])
+        self.control_process = Popen(['python2', '../../onboard/control_module.py', '--level', 'debug', '--simulate'])
 
         # capture kill signals to send it to the subprocesses
         signal.signal(signal.SIGINT, self.signal_handler)
