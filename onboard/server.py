@@ -9,7 +9,7 @@ import logging
 import threading
 from logging import Logger
 
-from global_classes import MessageCodes
+from global_classes import MessageCodes, logformat, dateformat
 
 
 class Server():
@@ -29,34 +29,50 @@ class Server():
 
         self.serversocket = socket.socket(socket.AF_INET,      # Internet
                                           socket.SOCK_STREAM)  # TCP
-        self.serversocket.bind((self.HOST, self.PORT))
-        self.serversocket.listen(1)  # become a server socket, only 1 connection allowed
 
-        self.heartbeat_thread = HeartBeatThread(0)
+        try:
+            self.serversocket.bind((self.HOST, self.PORT))
+            self.serversocket.listen(1)  # become a server socket, only 1 connection allowed
 
-        # handle signals to exit gracefully
-        signal.signal(signal.SIGINT, self.sigint_handler)
+            self.heartbeat_thread = HeartBeatThread(0, self.logger)
+
+            # handle signals to exit gracefully
+            signal.signal(signal.SIGINT, self.sigint_handler)
+        except socket.error, msg:
+            self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
+            self.close()
 
     def sigint_handler(self, signal, frame):
-        self.quit = True
+        self.close()
         self.logger.debug("exiting the process")
 
     def run(self):
         while not self.quit:
-            client, address = self.serversocket.accept()
-            length = client.recv(4)
-            if length is not None:
-                buffersize = struct.unpack(">I", length)[0]
-            raw = client.recv(buffersize)
-            self.logger.info("Server received a message:")
-            self.logger.info(raw)
-            control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-            control_thread = ControlThread(1, raw, control_socket=control_socket, client_socket=client, heartbeat_thread=self.heartbeat_thread)
-            control_thread.start()
+            try:
+                client, address = self.serversocket.accept()
+                length = client.recv(4)
+                if length is not None:
+                    buffersize = struct.unpack(">I", length)[0]
+                raw = client.recv(buffersize)
+                self.logger.info("Server received a message:")
+                self.logger.info(raw)
+                control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
+                control_thread = ControlThread(1, raw, control_socket=control_socket, client_socket=client,
+                                               heartbeat_thread=self.heartbeat_thread, logger=self.logger)
+                control_thread.start()
+            except socket.error, msg:
+                self.logger.debug("Error in server: {0}, quitting".format(msg))
+                self.close()
+
+    def close(self):
+        self.quit = True
+        self.logger.debug("Stopping the server")
+        if self.heartbeat_thread is not None:
+            self.heartbeat_thread.stop_thread()
 
 
 class ControlThread (threading.Thread):
-    def __init__(self, threadID, data, control_socket, client_socket, heartbeat_thread):
+    def __init__(self, threadID, data, control_socket, client_socket, heartbeat_thread, logger):
         """
         :type control_socket: Socket
         :type client_socket: Socket
@@ -69,66 +85,76 @@ class ControlThread (threading.Thread):
         self.client_socket = client_socket
 
         self.heartbeat_thread = heartbeat_thread
+        self.logger = logger
 
     def run(self):
+        self.logger.debug("running controlthread")
         self.control_socket.connect("/tmp/uds_control")
         self.control_socket.send(struct.pack(">I", len(self.data)))
         self.control_socket.send(self.data)
+
         raw_response = self.control_socket.recv(4)
+        self.logger.debug("got a response in controlthread")
         status_code = struct.unpack(">I", raw_response)[0]
+        self.logger.debug("response has statuscode {0}".format(status_code))
         if status_code == MessageCodes.ACK or status_code == MessageCodes.ERR:  # let the client know if request succeeded or failed
-            self.control_socket.close()
             response = bytearray(raw_response)
-            self.client_socket.send(response)
+            self.client_socket.send(struct.pack(">H", status_code))
 
         if status_code == MessageCodes.STATUS_RESPONSE:  # send the response to the client
             raw_length = self.control_socket.recv(4)
             response_length = struct.unpack(">I", raw_length)[0]
             response = self.control_socket.recv(response_length)
-            response_length = bytearray(raw_length)
-            self.client_socket.send(response_length + response)
+
+            self.client_socket.send(struct.pack(">H", status_code))
+            self.client_socket.send(struct.pack(">H", response_length + 4))
+            self.client_socket.send(bytearray(response_length) + response)
 
         if status_code == MessageCodes.START_HEARTBEAT:
             raw_length = self.control_socket.recv(4)
             response_length = struct.unpack(">I", raw_length)[0]
             host = self.control_socket.recv(response_length)
+
             raw_length = self.control_socket.recv(4)
             response_length = struct.unpack(">I", raw_length)[0]
-            ip = self.control_socket.recv(response_length)
-            ip = int(ip)
-            self.heartbeat_thread.configure(ip, host)
+            port = self.control_socket.recv(response_length)
+            port = int(port)
+
+            self.heartbeat_thread.configure(host, port)
             self.heartbeat_thread.start()
-            self.client_socket.send(struct.pack(">I", MessageCodes.ACK))
+            self.client_socket.send(struct.pack(">H", MessageCodes.ACK))
 
         self.control_socket.close()
         self.client_socket.close()
 
 
 class HeartBeatThread (threading.Thread):
-    def __init__(self, threadID):
+    def __init__(self, threadID, logger):
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.quit = False
         self.workstation_ip = None
         self.workstation_port = None
-        self.workstation_socket = socket.socket(socket.AF_INET,      # Internet
-                                                socket.SOCK_STREAM)  # TCP
+        self.logger = logger
 
     def run(self):
         if self.workstation_ip is None or self.workstation_port is None:
             return
-        print self.workstation_ip
-        print self.workstation_port
-        self.workstation_socket.connect((self.workstation_ip, self.workstation_port,))
+
+        self.logger.debug(self.workstation_ip)
+        self.logger.debug(self.workstation_port)
+
         while not self.quit:
+            workstation_socket = socket.socket(socket.AF_INET,      # Internet
+                                               socket.SOCK_STREAM)  # TCP
+
             control_socket = socket.socket(socket.AF_UNIX,      # Unix Domain Socket
                                            socket.SOCK_STREAM)  # TCP
-            success = True
             try:
                 control_socket.connect("/tmp/uds_control")
                 hb_req = {'MessageType': 'status', 'Message': 'heartbeat'}
                 hb_req_message = json.dumps(hb_req)
-                control_socket.send(hb_req_message)
+                control_socket.send(struct.pack(">I", len(hb_req_message)) + hb_req_message)
 
                 raw_response = control_socket.recv(4)
                 status_code = struct.unpack(">I", raw_response)[0]
@@ -138,22 +164,32 @@ class HeartBeatThread (threading.Thread):
                     response_length = struct.unpack(">I", raw_length)[0]
                     response = control_socket.recv(response_length)
                     response_length = bytearray(raw_length)
-                    self.workstation_socket.send(response_length + response)
+                    self.logger.debug("heartbeat: {0}".format(response))
+
+                    try:
+                        workstation_socket.connect((self.workstation_ip, self.workstation_port))
+                        workstation_socket.send(struct.pack(">H", len(response) + 4))
+                        workstation_socket.send(response_length + response)
+                    except socket.error:
+                        self.logger.debug("Could not connect to the workstation")
+                        self.stop_thread()
+
                 # close the connection
                 control_socket.close()
-            except socket.error:
-                success = False
+                workstation_socket.close()
+            except socket.error, msg:
+                self.logger.debug("Socket error: {0}".format(msg))
 
-            if success:
-                # sleep 500ms before requesting another heartbeat
-                time.sleep(0.5)
+            # sleep 500ms before requesting another heartbeat
+            time.sleep(2)  # time.sleep(0.5)
 
-    def configure(self, ip, port):
-        self.workstation_ip = ip
+    def configure(self, host, port):
+        self.workstation_ip = host
         self.workstation_port = port
 
     def stop_thread(self):
-        self.quit = False
+        self.logger.debug("Stopping heartbeat thread")
+        self.quit = True
 
 
 def print_help():
@@ -184,14 +220,15 @@ if __name__ == '__main__':
         sys.exit(-1)
     for opt, arg in opts:
         if opt in ("-l", "--level"):
-            if arg == 'debug':
-                log_level = logging.DEBUG
-            elif arg == 'info':
-                log_level = logging.INFO
-            elif arg == 'warning':
-                log_level = logging.WARNING
-            elif arg == 'critical':
-                log_level = logging.CRITICAL
+            switch = {
+                'debug': logging.DEBUG,
+                'info': logging.INFO,
+                'warning': logging.WARNING,
+                'critical': logging.CRITICAL,
+            }
+
+            if arg in switch:
+                log_level = switch.get(arg)
             else:
                 print_help()
                 sys.exit(-1)
@@ -208,7 +245,7 @@ if __name__ == '__main__':
 
     # set up logging
     server_logger = logging.getLogger("Server")
-    formatter = logging.Formatter('[%(levelname)s] %(asctime)s in \'%(name)s\': %(message)s', datefmt='%m-%d %H:%M:%S')
+    formatter = logging.Formatter(logformat, datefmt=dateformat)
     if log_type == 'console':
         handler = logging.StreamHandler(stream=sys.stdout)
     elif log_type == 'file' and log_file is not None:
@@ -217,7 +254,6 @@ if __name__ == '__main__':
     handler.setLevel(log_level)
     server_logger.addHandler(handler)
     server_logger.setLevel(log_level)
-    server_logger.debug("test")
 
     # set up server
     server = Server(logger=server_logger, SIM=is_simulation)

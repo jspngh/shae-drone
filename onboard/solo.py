@@ -6,15 +6,15 @@ from dronekit import VehicleMode, Battery, SystemStatus, LocationGlobal, Locatio
 
 from GoProManager import GoProManager
 from GoProConstants import GOPRO_RESOLUTION, GOPRO_FRAME_RATE
-from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logging_level
+from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logformat, dateformat
 
 
 class Solo:
-    def __init__(self, vehicle, height=5, speed=10, update_rate=15):
+    def __init__(self, vehicle, height=5, speed=10, update_rate=15, logging_level=logging.CRITICAL):
         """
         :type vehicle: Vehicle
         """
-        self.goproManager = GoProManager()
+        self.goproManager = GoProManager(logging_level=logging_level)
         self.vehicle = vehicle
         # receive GoPro messages
         self.vehicle.add_attribute_listener('gopro_status', self.goproManager.state_callback)
@@ -37,7 +37,7 @@ class Solo:
 
         # set up self.logger
         self.logger = logging.getLogger("Solo")
-        formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        formatter = logging.Formatter(logformat, datefmt=dateformat)
         handler = logging.StreamHandler(stream=sys.stdout)
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
@@ -233,7 +233,7 @@ class Solo:
                 return
 
     def get_battery_level(self):
-        batt = self.vehicle.battery()
+        batt = self.vehicle.battery
         return batt.level
 
     def get_drone_type(self):

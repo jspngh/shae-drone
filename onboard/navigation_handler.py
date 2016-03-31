@@ -9,7 +9,7 @@ from logging import Logger
 from dronekit import connect, time
 
 from solo import Solo
-from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue
+from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue, logformat, dateformat
 
 
 class NavigationHandler():
@@ -28,8 +28,8 @@ class NavigationHandler():
 
         # set up logging
         self.nav_logger = logging.getLogger("Navigation Handler")
-        formatter = logging.Formatter('[%(levelname)s] %(message)s')
-        handler = logging.StreamHandler(stream=sys.stdout)
+        formatter = logging.Formatter(logformat, datefmt=dateformat)
+        handler = logging.StreamHandler(stream=sys.stdout)  # TODO
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.nav_logger.addHandler(handler)

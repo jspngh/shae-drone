@@ -14,7 +14,7 @@ from solo import Solo
 from navigation_handler import NavigationHandler
 from settings_handler import SettingsHandler
 from status_handler import StatusHandler
-from global_classes import MessageCodes, WayPointQueue
+from global_classes import MessageCodes, WayPointQueue, logformat, dateformat
 
 
 class ControlModule():
@@ -29,10 +29,10 @@ class ControlModule():
 
         if SIM:
             self.vehicle = connect('tcp:127.0.0.1:5760', wait_ready=True)
-            self.solo = Solo(vehicle=self.vehicle)
+            self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
         else:
             self.vehicle = connect('udpin:0.0.0.0:14550', wait_ready=True)
-            self.solo = Solo(vehicle=self.vehicle)
+            self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
 
         # handle signals to exit gracefully
         signal.signal(signal.SIGINT, self.sigint_handler)
@@ -44,21 +44,25 @@ class ControlModule():
             os.remove("/tmp/uds_control")  # remove socket if it exists
         except OSError:
             pass
-        self.unix_socket.bind("/tmp/uds_control")
-        self.unix_socket.listen(2)
+        try:
+            self.unix_socket.bind("/tmp/uds_control")
+            self.unix_socket.listen(2)
 
-        self.nav_thread = NavigationHandler.NavigationThread(1, solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
-        self.logger.debug("Starting Navigation Thread")
-        self.nav_thread.start()
+            self.nav_thread = NavigationHandler.NavigationThread(1, solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
+            self.logger.debug("Starting Navigation Thread")
+            self.nav_thread.start()
+        except socket.error, msg:
+            self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
+            self.close()
 
     def sigint_handler(self, signal, frame):
-        self.quit = True
+        self.close()
         self.logger.debug("exiting the process")
 
     def run(self):
         while not self.quit:
-            client, address = self.unix_socket.accept()
             try:
+                client, address = self.unix_socket.accept()
                 length = client.recv(4)
                 if length is None:
                     self.logger.info("Length is None")
@@ -96,7 +100,7 @@ class ControlModule():
                     response = sett_handler.handle_packet()
                     # if we got a response, that means we need to start sending heartbeats
                     if response is not None and isinstance(response, tuple):
-                        self.logger.info("Settings configuration")
+                        self.logger.info("Settings heartbeat configuration")
                         client.send(struct.pack(">I", MessageCodes.START_HEARTBEAT))
                         client.send(struct.pack(">I", len(response[0])))
                         client.send(response[0])
@@ -108,10 +112,20 @@ class ControlModule():
                 else:
                     raise ValueError
 
-            except ValueError:
+            except socket.error, msg:
+                self.logger.debug("Error in control module: {0}, quitting".format(msg))
+                self.close()
+
+            except ValueError, msg:
                 # TODO: handle error
-                self.logger.info("We might have a little problem")
+                self.logger.debug("Value error was raised: {0}".format(msg))
                 client.send(struct.pack(">I", MessageCodes.ERR))
+
+    def close(self):
+        self.quit = True
+        self.logger.debug("closing vehicle")
+        self.vehicle.close()
+        self.nav_thread.stop_thread()
 
 
 def print_help():
@@ -166,7 +180,7 @@ if __name__ == '__main__':
 
     # set up logging
     control_logger = logging.getLogger("Control Module")
-    formatter = logging.Formatter('[%(levelname)s] %(asctime)s in \'%(name)s\': %(message)s', datefmt='%m-%d %H:%M:%S')
+    formatter = logging.Formatter(logformat, datefmt=dateformat)
     if log_type == 'console':
         handler = logging.StreamHandler(stream=sys.stdout)
     elif log_type == 'file' and log_file is not None:
@@ -178,3 +192,4 @@ if __name__ == '__main__':
 
     # set up control module
     control_module = ControlModule(control_logger, log_level, is_simulation)
+    control_module.run()

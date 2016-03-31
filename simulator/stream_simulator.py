@@ -1,61 +1,66 @@
-import gi
-gi.require_version('Gst', '1.0')
-from gi.repository import GObject, Gtk
-from gi.repository import Gst as gst
+"""
+To be able to run the simulator, you need to install the python bindings for vlc:
+sudo pip install python-vlc
+"""
+import vlc
+import time
+import socket
+import threading
+import logging
+import sys
 
 
-class StreamSimulator:
-    def start(self):
+# TODO: listen on port 5502 for connection, then start to stream
+class StreamSimulator(threading.Thread):
+    """
+    The StreamSimulator executes the following command: cvlc testfootage.mp4 --sout '#rtp{dst=127.0.0.1,port=5000,ptype-video=96,mux=ts}'
+    """
+    def __init__(self):
+        self.logger = logging.getLogger("StreamSimulator")
+        formatter = logging.Formatter('[%(levelname)s] %(asctime)s in \'%(name)s\': %(message)s', datefmt='%m-%d %H:%M:%S')
+        handler = logging.StreamHandler(stream=sys.stdout)
+        handler.setFormatter(formatter)
+        handler.setLevel(logging.DEBUG)
+        self.logger.addHandler(handler)
+        self.logger.setLevel(logging.DEBUG)
 
-        # Initialization GStreamer
-        GObject.threads_init()
-        gst.init(None)
+        threading.Thread.__init__(self)
+        self.Instance = vlc.Instance('--input-repeat=-1')  # loop the testfootage
+        self.player = self.Instance.media_player_new()
+        self.videosocket = socket.socket(socket.AF_INET,      # Internet
+                                         socket.SOCK_STREAM)  # TCP
+        try:
+            self.videosocket.bind(("127.0.0.1", 5502))
+            self.videosocket.settimeout(5)
+            self.videosocket.listen(1)
+            self.quit = False
 
-        # Create pipeline
-        pipeline = gst.Pipeline()
+        except socket.error, msg:
+            self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
+            self.quit = True
 
-        # Create elements for pipeline
-        source = gst.ElementFactory.make('filesrc', None)
-        demux = gst.ElementFactory.make('qtdemux', None)
-        queue = gst.ElementFactory.make('queue', None)
-        pay = gst.ElementFactory.make('rtpmp4vpay', None)
-        address = gst.ElementFactory.make('udpsink', None)
+    def run(self):
+        # first wait for a connection, then start streaming
+        while not self.quit:
+            self.quit = True
+            try:
+                client, address = self.videosocket.accept()
+            except socket.timeout:
+                self.quit = False
+                pass
+        self.logger.debug("Starting stream")
+        footage = 'testfootage.mp4'
+        options = "sout=#rtp{dst=127.0.0.1,port=5000,ptype-video=96,mux=ts}"
+        media = self.Instance.media_new(footage, options)
+        self.player.set_media(media)
+        self.player.play()
 
-        if not (source and demux and queue and pay and address):
-            print 'Niet'
-            exit(-1)
+        # 5 is the 'stopped' state, 6 is the 'ended' state
+        while (not self.quit):
+            time.sleep(2)
 
-        # Add properties to elements
-        source.set_property('location', 'test_footage1.mp4')
-        demux.set_property('name', 'd')
-        address.set_property('host', '127.0.0.1')
-        address.set_property('port', 5000)
-
-        # Add elements to pipeline
-        pipeline.add(source)
-        pipeline.add(demux)
-        pipeline.add(queue)
-        pipeline.add(pay)
-        pipeline.add(address)
-
-        # Link elelemts together
-        source.link(demux)
-        demux.link(queue)
-        queue.link(pay)
-        pay.link(address)
-
-        # Set pipeline to PLAYING state
-        pipeline.set_state(gst.State.PLAYING)
-
-        # Wait until error or EOS
-        bus = pipeline.get_bus()
-        msg = bus.timed_pop_filtered(gst.CLOCK_TIME_NONE, gst.MessageType.ERROR | gst.MessageType.EOS)
-        err, debug = msg.parse_error()
-        print err
-        print debug
-
-        # Free resources.
-        pipeline.set_state(gst.State.NULL)
-
-ss = StreamSimulator()
-ss.start()
+    def stop_thread(self):
+        self.logger.debug("Stopping streamsimulator")
+        self.quit = True
+        self.player.stop()
+        self.Instance.release()
