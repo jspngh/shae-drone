@@ -14,9 +14,6 @@ class Simulator:
         sitl_args = ['solo', '--home=51.022627,3.709807,5,0']
         self.sitl.launch(sitl_args, await_ready=True, restart=True)
 
-        # TODO: test if waiting for sitl here is necessary
-#        time.sleep(2)
-
         self.stream_simulator = StreamSimulator()
         self.stream_simulator.start()
 
