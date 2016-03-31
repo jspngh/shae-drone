@@ -53,7 +53,7 @@ class StatusHandler():
                 loc = self.solo.get_location()
                 wp_reached = False  # TODO
                 data = {'Location': loc, 'Reached WP': wp_reached}
-                return self.create_packet(data, cls=LocationEncoder)
+                return self.create_packet(data, cls=LocationEncoder, heartbeat=True)
 
             else:                                       # this is an array with the attributes that were required
                 if not isinstance(self.message, list):  # if it is not a list, something went wrong
@@ -136,7 +136,7 @@ class StatusHandler():
         except ValueError:
             print "handle error"
 
-    def create_packet(self, data, cls=None):
+    def create_packet(self, data, cls=None, heartbeat=False):
         """
         :type data: dict
         """
@@ -144,6 +144,8 @@ class StatusHandler():
         localtime = time.localtime(now)
         milliseconds = '%03d' % int((now - int(now)) * 1000)
         timestamp = time.strftime('%Y/%m/%d-%H:%M:%S:', localtime) + milliseconds
-
-        data.update({'MessageType': 'status', 'Timestamp': timestamp})
+        if heartbeat:
+            data.update({'MessageType': 'status', 'Timestamp': timestamp, 'heartbeat': True})
+        else:
+            data.update({'MessageType': 'status', 'Timestamp': timestamp, 'heartbeat': False})
         return json.dumps(data, cls=cls)

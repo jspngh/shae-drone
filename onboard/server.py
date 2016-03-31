@@ -30,6 +30,7 @@ class Server():
 
         self.serversocket = socket.socket(socket.AF_INET,      # Internet
                                           socket.SOCK_STREAM)  # TCP
+        self.serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
         try:
             self.serversocket.bind((self.HOST, self.PORT))
@@ -78,6 +79,7 @@ class ControlThread (threading.Thread):
         :type control_socket: Socket
         :type client_socket: Socket
         :type heartbeat_thread: HeartBeatThread
+        :type logger: Logger
         """
         threading.Thread.__init__(self)
         self.threadID = threadID
@@ -100,16 +102,21 @@ class ControlThread (threading.Thread):
         self.logger.debug("response has statuscode {0}".format(status_code))
         if status_code == MessageCodes.ACK or status_code == MessageCodes.ERR:  # let the client know if request succeeded or failed
             response = bytearray(raw_response)
-            self.client_socket.send(struct.pack(">H", status_code))
+            try:
+                self.client_socket.send(struct.pack(">H", status_code))
+            except socket.error, msg:
+                self.logger.debug("Error in server thread: {0}".format(msg))
 
         if status_code == MessageCodes.STATUS_RESPONSE:  # send the response to the client
             raw_length = self.control_socket.recv(4)
             response_length = struct.unpack(">I", raw_length)[0]
             response = self.control_socket.recv(response_length)
-
-            self.client_socket.send(struct.pack(">H", status_code))
-            self.client_socket.send(struct.pack(">H", response_length + 4))
-            self.client_socket.send(bytearray(response_length) + response)
+            try:
+                self.client_socket.send(struct.pack(">H", status_code))
+                self.client_socket.send(struct.pack(">H", response_length + 4))
+                self.logger.debug("resp length {0}".format(response_length + 4))
+            except socket.error, msg:
+                self.logger.debug("Error in server thread: {0}".format(msg))
 
         if status_code == MessageCodes.START_HEARTBEAT:
             raw_length = self.control_socket.recv(4)
@@ -123,7 +130,10 @@ class ControlThread (threading.Thread):
 
             self.heartbeat_thread.configure(host, port)
             self.heartbeat_thread.start()
-            self.client_socket.send(struct.pack(">H", MessageCodes.ACK))
+            try:
+                self.client_socket.send(struct.pack(">H", MessageCodes.ACK))
+            except socket.error, msg:
+                self.logger.debug("Error in server thread: {0}".format(msg))
 
         self.control_socket.close()
         self.client_socket.close()
@@ -131,6 +141,9 @@ class ControlThread (threading.Thread):
 
 class HeartBeatThread (threading.Thread):
     def __init__(self, threadID, logger):
+        """
+        :type logger: Logger
+        """
         threading.Thread.__init__(self)
         self.threadID = threadID
         self.quit = False

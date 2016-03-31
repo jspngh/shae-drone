@@ -156,17 +156,19 @@ if __name__ == '__main__':
         sys.exit(-1)
     for opt, arg in opts:
         if opt in ("-l", "--level"):
-            if arg == 'debug':
-                log_level = logging.DEBUG
-            elif arg == 'info':
-                log_level = logging.INFO
-            elif arg == 'warning':
-                log_level = logging.WARNING
-            elif arg == 'critical':
-                log_level = logging.CRITICAL
+            switch = {
+                'debug': logging.DEBUG,
+                'info': logging.INFO,
+                'warning': logging.WARNING,
+                'critical': logging.CRITICAL,
+            }
+
+            if arg in switch:
+                log_level = switch.get(arg)
             else:
                 print_help()
                 sys.exit(-1)
+
         elif opt in ("-t", "--type"):
             if arg == 'file':
                 log_type = 'file'
