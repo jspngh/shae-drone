@@ -36,21 +36,21 @@ class NavigationHandler():
         self.nav_logger.setLevel(logging_level)
 
     def handle_packet(self):
+        handler = None
         if (self.message == "path"):
             self.nav_logger.debug("Handling path message")
             handler = self.PathHandler(self.packet, waypoint_queue=self.waypoint_queue, logger=self.nav_logger)
-            handler.handle_packet()
         elif (self.message == "start"):
             handler = self.StartHandler(self.packet, self.solo, logger=self.nav_logger)
-            handler.handle_packet()
         elif (self.message == "stop"):
             handler = self.StopHandler(self.packet, self.solo, logger=self.nav_logger)
-            handler.handle_packet()
         elif (self.message == "emergency"):
             handler = self.EmergencyHandler(self.packet, self.solo, logger=self.nav_logger)
-            handler.handle_packet()
         else:
             raise ValueError  # if we get to this point, something went wrong
+
+        if handler is not None:
+            handler.handle_packet()
 
     class NavigationThread (threading.Thread):
         """
@@ -91,6 +91,7 @@ class NavigationHandler():
                     time.sleep(0.1)
 
         def stop_thread(self):
+            self.logger.debug("Stopping navigation thread")
             self.quit = True
 
     class PathHandler():
