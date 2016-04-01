@@ -105,14 +105,14 @@ class NavigationHandler():
             self.logger = logger
 
         def handle_packet(self):
-            if 'Waypoints' not in self.packet:
+            if 'waypoints' not in self.packet:
                 raise ValueError
 
-            waypoints = self.packet['Waypoints']
+            waypoints = self.packet['waypoints']
             for json_waypoint in waypoints:
-                json_location = json_waypoint['Location']
-                location = Location(longitude=float(json_location['Longitude']), latitude=float(json_location['Latitude']))
-                waypoint = WayPoint(location=location, order=json_waypoint['Order'])
+                json_location = json_waypoint['location']
+                location = Location(longitude=float(json_location['longitude']), latitude=float(json_location['latitude']))
+                waypoint = WayPoint(location=location, order=json_waypoint['order'])
 
                 self.logger.info("Adding waypoint...")
                 self.waypoint_queue.insert_waypoint(waypoint)

@@ -70,15 +70,15 @@ class ControlModule():
                 buffersize = struct.unpack(">I", length)[0]
                 raw = client.recv(buffersize)
                 packet = json.loads(raw)  # parse the Json we received
-                if 'MessageType' not in packet:  # every packet should have a MessageType field
+                if 'message_type' not in packet:  # every packet should have a MessageType field
                     self.logger.info("every packet should have a MessageType field")
                     raise ValueError
-                if 'Message' not in packet:  # every packet should have a Message field
+                if 'message' not in packet:  # every packet should have a Message field
                     self.logger.info("every packet should have a Message field")
                     raise ValueError
 
-                message_type = packet['MessageType']  # the 'message type' attribute tells us to which class of packet this packet belongs
-                message = packet['Message']           # the 'message' attribute tells what packet it is, within it's class
+                message_type = packet['message_type']  # the 'message type' attribute tells us to which class of packet this packet belongs
+                message = packet['message']           # the 'message' attribute tells what packet it is, within it's class
                 if (message_type == "navigation"):
                     self.logger.info("received a navigation request")
                     nav_handler = NavigationHandler(packet, message, self.solo, self.waypoint_queue, logging_level=self.log_level)

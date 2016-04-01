@@ -38,9 +38,9 @@ class SettingsHandler():
         try:
             if (self.message == "workstation_config"):  # set the workstation configuration and start sending heartbeats
                 self.settings_logger.info("Extracting configuration")
-                config = self.packet['Configuration']
-                ip = config['IpAddress']
-                port = config['Port']  # keep the port as string for now
+                config = self.packet['configuration']
+                ip = config['ip_address']
+                port = config['port']  # keep the port as string for now
                 self.settings_logger.info("IP: {0}".format(ip))
                 self.settings_logger.info("Port: {0}".format(port))
                 return (ip, port)
@@ -49,21 +49,21 @@ class SettingsHandler():
                     self.settings_logger.warning("Message not a list")
                     raise ValueError
                 for setting_request in self.message:
-                    if (setting_request['Key'] == "speed"):
-                        value = setting_request['Value']
+                    if (setting_request['key'] == "speed"):
+                        value = setting_request['value']
                         self.solo.set_target_speed(value)
                         print "handle"
-                    elif (setting_request['Key'] == "height"):
-                        value = setting_request['Value']
+                    elif (setting_request['key'] == "height"):
+                        value = setting_request['value']
                         self.solo.set_target_height(value)
-                    elif (setting_request['Key'] == "camera_angle"):
-                        value = setting_request['Value']
+                    elif (setting_request['key'] == "camera_angle"):
+                        value = setting_request['value']
                         self.solo.set_camera_angle(value)
-                    elif (setting_request['Key'] == "fps"):
-                        value = setting_request['Value']
+                    elif (setting_request['key'] == "fps"):
+                        value = setting_request['value']
                         self.solo.set_camera_fps(value)
-                    elif (setting_request['Key'] == "resolution"):
-                        value = setting_request['Value']
+                    elif (setting_request['key'] == "resolution"):
+                        value = setting_request['value']
                         self.solo.set_camera_resolution(value)
                     else:
                         raise ValueError  # if we get to this point, something went wrong

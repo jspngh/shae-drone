@@ -22,7 +22,7 @@ class DroneType():
 class DroneTypeEncoder(JSONEncoder):
     def default(self, drone):
         if isinstance(drone, DroneType):
-            dt = {'Manufacturer': drone.manufacturer, 'Model': drone.model}
+            dt = {'manufacturer': drone.manufacturer, 'model': drone.model}
             return {'drone_type': dt}
 
 
@@ -34,7 +34,7 @@ class Location():
 
 class LocationEncoder(JSONEncoder):
     def default(self, loc):
-        loc = {'Latitude': loc.latitude, 'Longitude': loc.longitude}
+        loc = {'latitude': loc.latitude, 'longitude': loc.longitude}
         return loc
 
 
@@ -52,8 +52,8 @@ class WayPoint():
 
 class WayPointEncoder(JSONEncoder):
     def default(self, wp):
-        loc = {'Latitude': wp.location.latitude, 'Longitude': wp.location.longitude}
-        res = {'Order': wp.order, 'Location': loc}
+        loc = {'latitude': wp.location.latitude, 'longitude': wp.location.longitude}
+        res = {'order': wp.order, 'location': loc}
         return res
 
 

@@ -166,7 +166,7 @@ class HeartBeatThread (threading.Thread):
                                            socket.SOCK_STREAM)  # TCP
             try:
                 control_socket.connect("/tmp/uds_control")
-                hb_req = {'MessageType': 'status', 'Message': 'heartbeat'}
+                hb_req = {'message_type': 'status', 'message': 'heartbeat'}
                 hb_req_message = json.dumps(hb_req)
                 control_socket.send(struct.pack(">I", len(hb_req_message)) + hb_req_message)
 
