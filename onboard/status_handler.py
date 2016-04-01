@@ -115,6 +115,11 @@ class StatusHandler():
                         data = {'selected_height': target_height}
                         return self.create_packet(data)
 
+                    elif (status_request['Key'] == "orientation"):
+                        orientation = self.solo.get_orientation()
+                        data = {'orientation': orientation}
+                        return self.create_packet(data)
+
                     elif (status_request['Key'] == "camera_angle"):
                         camera_angle = self.solo.get_camera_angle()
                         data = {'camera_angle': camera_angle}

@@ -2,7 +2,7 @@ import sys
 import math
 import logging
 from pymavlink.mavutil import mavlink
-from dronekit import VehicleMode, Battery, SystemStatus, LocationGlobal, LocationGlobalRelative, time
+from dronekit import VehicleMode, Battery, Attitude, SystemStatus, LocationGlobal, LocationGlobalRelative, time
 
 from GoProManager import GoProManager
 from GoProConstants import GOPRO_RESOLUTION, GOPRO_FRAME_RATE
@@ -264,6 +264,10 @@ class Solo:
     def set_target_height(self, height):
         self.height = height
         return
+
+    def get_orientation(self):
+        att = self.vehicle.attitude
+        return att.yaw
 
     def get_camera_angle(self):
         return
