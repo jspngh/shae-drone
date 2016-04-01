@@ -41,6 +41,7 @@ class StatusHandler():
     def handle_packet(self):
         try:
             if (self.message == "all_statuses"):  # TODO: all status attributes are requested
+                wp_order = -1  # TODO
                 battery = self.solo.get_battery_level()
                 loc = self.solo.get_location()
                 drone_type = self.solo.get_drone_type()
@@ -49,10 +50,16 @@ class StatusHandler():
                 height = self.solo.get_height()
                 target_height = self.solo.get_target_height()
 
+                data = {'current_location': loc, 'waypoint_order': wp_order, 'battery_level': battery, \
+                        'speed': speed, 'selected_speed': target_speed, 'height': height, \
+                        'selected_height': target_height}
+
+                return self.create_packet(data, cls=LocationEncoder, heartbeat=False)
+
             elif (self.message == "heartbeat"):  # a heartbeat was requested
                 loc = self.solo.get_location()
-                wp_reached = False  # TODO
-                data = {'Location': loc, 'Reached WP': wp_reached}
+                wp_order = -1  # TODO
+                data = {'current_location': loc, 'waypoint_order': wp_order}
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=True)
 
             else:                                       # this is an array with the attributes that were required
@@ -60,35 +67,36 @@ class StatusHandler():
                     self.stat_logger.warning("Message not a list")
                     raise ValueError
                 for status_request in self.message:
-                    if (status_request['Key'] == "battery_level"):
+                    if (status_request['key'] == "battery_level"):
                         battery = self.solo.get_battery_level()
                         data = {'battery_level': battery}
                         return self.create_packet(data)
 
-                    elif (status_request['Key'] == "current_location"):
+                    elif (status_request['key'] == "current_location"):
                         loc = self.solo.get_location()
                         loc_message = {'current_location': loc}
                         return self.create_packet(loc_message, cls=LocationEncoder)
 
-                    elif (status_request['Key'] == "drone_type"):
+                    elif (status_request['key'] == "drone_type"):
                         self.stat_logger.info("Getting dronetype")
                         drone_type = self.solo.get_drone_type()
                         dt_message = json.dumps(drone_type, cls=DroneTypeEncoder)
                         return self.create_packet(dt_message)
 
-                    elif (status_request['Key'] == "waypoint_reached"):
+                    elif (status_request['key'] == "waypoint_order"):
+                        # TODO
                         # this message is obsolete, instead the drone will let the workstation know whether
                         # it has reached the next waypoint through its status
                         self.stat_logger.info("Obsolete waypoint reached message received")
 
-                    elif (status_request['Key'] == "next_waypoint"):
+                    elif (status_request['key'] == "next_waypoint"):
                         self.waypoint_queue.queue_lock.acquire()
                         next_wp = self.waypoint_queue.queue[0]
                         self.waypoint_queue.queue_lock.release()
                         data = json.dumps(next_wp, cls=WayPointEncoder)
                         return self.create_packet(data)
 
-                    elif (status_request['Key'] == "next_waypoints"):
+                    elif (status_request['key'] == "next_waypoints"):
                         self.waypoint_queue.queue_lock.acquire()
                         wpq = copy.deepcopy(self.waypoint_queue.queue)
                         self.waypoint_queue.queue_lock.release()
@@ -96,37 +104,37 @@ class StatusHandler():
                         data = json.dumps(path_message, cls=WayPointEncoder)
                         return self.create_packet(data)
 
-                    elif (status_request['Key'] == "speed"):
+                    elif (status_request['key'] == "speed"):
                         speed = self.solo.get_speed()
                         data = {'speed': speed}
                         return self.create_packet(data)
 
-                    elif (status_request['Key'] == "selected_speed"):
+                    elif (status_request['key'] == "selected_speed"):
                         target_speed = self.solo.get_target_speed()
                         data = {'selected_speed': target_speed}
                         return self.create_packet(data)
 
-                    elif (status_request['Key'] == "height"):
+                    elif (status_request['key'] == "height"):
                         height = self.solo.get_height()
                         data = {'height': height}
                         return self.create_packet(data)
 
-                    elif (status_request['Key'] == "selected_height"):
+                    elif (status_request['key'] == "selected_height"):
                         target_height = self.solo.get_target_height()
                         data = {'selected_height': target_height}
                         return self.create_packet(data)
 
-                    elif (status_request['Key'] == "camera_angle"):
+                    elif (status_request['key'] == "camera_angle"):
                         camera_angle = self.solo.get_camera_angle()
                         data = {'camera_angle': camera_angle}
                         return self.create_packet(data)
 
-                    elif (status_request['Key'] == "fps"):
+                    elif (status_request['key'] == "fps"):
                         fps = self.solo.get_camera_fps()
                         data = {'fps': fps}
                         return self.create_packet(data)
 
-                    elif (status_request['Key'] == "resolution"):
+                    elif (status_request['key'] == "resolution"):
                         resolution = self.solo.get_camera_resolution()
                         data = {'resolution': resolution}
                         return self.create_packet(data)
@@ -144,8 +152,10 @@ class StatusHandler():
         localtime = time.localtime(now)
         milliseconds = '%03d' % int((now - int(now)) * 1000)
         timestamp = time.strftime('%Y/%m/%d-%H:%M:%S:', localtime) + milliseconds
+
         if heartbeat:
-            data.update({'MessageType': 'status', 'Timestamp': timestamp, 'heartbeat': True})
+            data.update({'message_type': 'status', 'timestamp': timestamp, 'heartbeat': True})
         else:
-            data.update({'MessageType': 'status', 'Timestamp': timestamp, 'heartbeat': False})
+            data.update({'message_type': 'status', 'timestamp': timestamp, 'heartbeat': False})
+
         return json.dumps(data, cls=cls)
