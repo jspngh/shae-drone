@@ -1,29 +1,43 @@
+import sys
 import math
 import logging
-import sys
 from pymavlink.mavutil import mavlink
 from dronekit import VehicleMode, Battery, SystemStatus, LocationGlobal, LocationGlobalRelative, time
-from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logging_level
+
+from GoProManager import GoProManager
+from GoProConstants import GOPRO_RESOLUTION, GOPRO_FRAME_RATE
+from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logformat, dateformat
 
 
 class Solo:
-    def __init__(self, vehicle, height=3, speed=10, update_rate=15):
+    def __init__(self, vehicle, height=5, speed=10, update_rate=15, logging_level=logging.CRITICAL):
         """
         :type vehicle: Vehicle
         """
+        self.goproManager = GoProManager(logging_level=logging_level)
         self.vehicle = vehicle
+        # receive GoPro messages
+        self.vehicle.add_attribute_listener('gopro_status', self.goproManager.state_callback)
+        self.vehicle.add_attribute_listener(attr_name='GOPRO_GET_RESPONSE', observer=self.goproManager.get_response_callback)
+        self.vehicle.add_message_listener(name='GOPRO_GET_RESPONSE', fn=self.goproManager.get_response_callback)
+        self.vehicle.add_attribute_listener('GOPRO_SET_RESPONSE', self.goproManager.set_response_callback)
+
         self.fence_breach = False
         self.last_send_point = 0
         self.last_send_move = 0
         self.last_send_translate = 0
+
         self.update_rate = update_rate
         self.height = height
         self.speed = speed
+        self.camera_fps = None
+        self.camera_resolution = None
+        self.camera_angle = None
         self.drone_type = DroneType('3DR', 'Solo')
 
         # set up self.logger
         self.logger = logging.getLogger("Solo")
-        formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        formatter = logging.Formatter(logformat, datefmt=dateformat)
         handler = logging.StreamHandler(stream=sys.stdout)
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
@@ -219,7 +233,7 @@ class Solo:
                 return
 
     def get_battery_level(self):
-        batt = self.vehicle.battery()
+        batt = self.vehicle.battery
         return batt.level
 
     def get_drone_type(self):
@@ -258,24 +272,94 @@ class Solo:
         return
 
     def get_camera_fps(self):
-        return
+        self.logger.debug("sending gopro mavlink message")
+        command = mavlink.GOPRO_COMMAND_VIDEO_SETTINGS
+        msg = self.vehicle.message_factory.gopro_get_request_encode(0,
+                                                                    mavlink.MAV_COMP_ID_GIMBAL,  # target system, target component
+                                                                    command)
+        self.vehicle.send_mavlink(msg)
+        self.vehicle.flush()
+
+        # wait some time for the video settings to be updated
+        time.sleep(1)
+        num_frame_rate = self.goproManager.videoFrameRate
+        if num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_12:
+            return 12
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_15:
+            return 15
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_24:
+            return 24
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_25:
+            return 25
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_30:
+            return 30
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_48:
+            return 48
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_50:
+            return 50
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_60:
+            return 60
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_80:
+            return 80
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_90:
+            return 90
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_100:
+            return 100
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_120:
+            return 120
+        elif num_frame_rate == GOPRO_FRAME_RATE.GOPRO_FRAME_RATE_240:
+            return 250
+        else:
+            return 0  # something went wrong
 
     def set_camera_fps(self, fps):
         return
 
     def get_camera_resolution(self):
-        return
+        self.logger.debug("sending gopro mavlink message")
+        command = mavlink.GOPRO_COMMAND_VIDEO_SETTINGS
+        msg = self.vehicle.message_factory.gopro_get_request_encode(0,
+                                                                    mavlink.MAV_COMP_ID_GIMBAL,  # target system, target component
+                                                                    command)
+        self.vehicle.send_mavlink(msg)
+        self.vehicle.flush()
+
+        # wait some time for the video settings to be updated
+        time.sleep(1)
+        num_resolution = self.goproManager.videoResolution
+        # we will only handle a subpart of all available resolutions
+        # the others will not be used
+        if num_resolution == GOPRO_RESOLUTION.GOPRO_RESOLUTION_480p:
+            return 480
+        elif num_resolution == GOPRO_RESOLUTION.GOPRO_RESOLUTION_720p:
+            return 720
+        elif num_resolution == GOPRO_RESOLUTION.GOPRO_RESOLUTION_960p:
+            return 960
+        elif num_resolution == GOPRO_RESOLUTION.GOPRO_RESOLUTION_1080p:
+            return 1080
+        elif num_resolution == GOPRO_RESOLUTION.GOPRO_RESOLUTION_1440p:
+            return 1440
+        else:
+            return 0  # something went wrong
 
     def set_camera_resolution(self, resolution):
         return
 
-    def control_gimbal(self, pitch, roll, yaw):
+    def control_gimbal(self, pitch=None, roll=None, yaw=None):
         self.logger.info("Operating Gimbal...")
         gmbl = self.vehicle.gimbal
+        if pitch is None:
+            pitch = gmbl.pitch()
+        if roll is None:
+            roll = gmbl.roll()
+        if yaw is None:
+            yaw = gmbl.yaw()
+
         while gmbl.pitch != pitch:
             gmbl.rotate(pitch, roll, yaw)
             print gmbl.pitch
             time.sleep(0.1)
+
         gmbl.release
         self.logger.info("Gimbal Operation Complete")
 
@@ -325,3 +409,37 @@ class Solo:
         dlat = aLocation2.latitude - aLocation1.latitude
         dlong = aLocation2.longitude - aLocation1.longitude
         return math.sqrt((dlat * dlat) + (dlong * dlong)) * latlon_to_m
+
+    def condition_yaw(self, heading, relative=False):
+        """
+        This function was taken from http://python.dronekit.io/examples/guided-set-speed-yaw-demo.html
+        This won't be used in this project, but might prove useful for future uses
+
+        Send MAV_CMD_CONDITION_YAW message to point vehicle at a specified heading (in degrees).
+
+        This method sets an absolute heading by default, but you can set the `relative` parameter
+        to `True` to set yaw relative to the current yaw heading.
+
+        By default the yaw of the vehicle will follow the direction of travel. After setting
+        the yaw using this function there is no way to return to the default yaw "follow direction
+        of travel" behaviour
+
+        For more information see:
+        http://ardupilot.org/copter/docs/common-mavlink-mission-command-messages-mav_cmd.html#mav-cmd-condition-yaw
+        """
+        if relative:
+            is_relative = 1  # yaw relative to direction of travel
+        else:
+            is_relative = 0  # yaw is an absolute angle
+        # create the CONDITION_YAW command using command_long_encode()
+        msg = self.vehicle.message_factory.command_long_encode(
+            0, 0,    # target system, target component
+            mavlink.MAV_CMD_CONDITION_YAW,  # command
+            0,  # confirmation
+            heading,      # param 1, yaw in degrees
+            0,            # param 2, yaw speed deg/s
+            1,            # param 3, direction -1 ccw, 1 cw
+            is_relative,  # param 4, relative offset 1, absolute angle 0
+            0, 0, 0)      # param 5 ~ 7 not used
+        # send command to vehicle
+        self.vehicle.send_mavlink(msg)
