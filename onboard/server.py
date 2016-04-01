@@ -114,7 +114,7 @@ class ControlThread (threading.Thread):
             try:
                 self.client_socket.send(struct.pack(">H", status_code))
                 self.client_socket.send(struct.pack(">H", response_length + 4))
-                self.logger.debug("resp length {0}".format(response_length + 4))
+                self.client_socket.send(bytearray(raw_length) + response)
             except socket.error, msg:
                 self.logger.debug("Error in server thread: {0}".format(msg))
 
