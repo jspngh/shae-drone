@@ -1,12 +1,14 @@
-import unittest
 import sys
+import unittest
 from time import sleep
 
-sys.path.append("../src")
-from stream_simulator import StreamSimulator 
+sys.path.append("../simulator/src")
+sys.path.append("../onboard")
+from stream_simulator import StreamSimulator
+
 
 class TestStreamSimulator(unittest.TestCase):
-    
+
     def __init__(self):
         self.stream_simulator = StreamSimulator()
 

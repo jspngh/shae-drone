@@ -3,7 +3,6 @@ To be able to run the simulator, you need to install the python bindings for vlc
 sudo pip install python-vlc
 """
 import vlc
-import time
 import socket
 import threading
 import logging
@@ -15,7 +14,12 @@ class StreamSimulator(threading.Thread):
     """
     The StreamSimulator executes the following command: cvlc testfootage.mp4 --sout '#rtp{dst=127.0.0.1,port=5000,ptype-video=96,mux=ts}'
     """
-    def __init__(self):
+    def __init__(self, footage):
+        """
+        :param footage: The path to the video with testfootage that will be played back by the stream simulator
+        """
+        self.footage = footage  # '../videos/testfootage.mp4'
+
         self.logger = logging.getLogger("StreamSimulator")
         formatter = logging.Formatter('[%(levelname)s] %(asctime)s in \'%(name)s\': %(message)s', datefmt='%m-%d %H:%M:%S')
         handler = logging.StreamHandler(stream=sys.stdout)
@@ -52,15 +56,14 @@ class StreamSimulator(threading.Thread):
                 pass
 
         if not self.quit:
-            self.logger.debug("Starting stream")
-            footage = '../videos/testfootage.mp4'
+            self.logger.debug("starting stream")
             options = "sout=#rtp{dst=127.0.0.1,port=5000,ptype-video=96,mux=ts}"
-            media = self.Instance.media_new(footage, options)
+            media = self.Instance.media_new(self.footage, options)
             self.player.set_media(media)
             self.player.play()
 
     def stop_thread(self):
-        self.logger.debug("Stopping streamsimulator")
+        self.logger.debug("stopping stream simulator")
         self.quit = True
         self.player.stop()
         self.Instance.release()

@@ -73,8 +73,7 @@ class StatusHandler():
                     elif (status_request['Key'] == "drone_type"):
                         self.stat_logger.info("Getting dronetype")
                         drone_type = self.solo.get_drone_type()
-                        dt_message = json.dumps(drone_type, cls=DroneTypeEncoder)
-                        return self.create_packet(dt_message)
+                        return self.create_packet(drone_type.__dict__, cls=DroneTypeEncoder)
 
                     elif (status_request['Key'] == "waypoint_reached"):
                         # this message is obsolete, instead the drone will let the workstation know whether
@@ -85,7 +84,7 @@ class StatusHandler():
                         self.waypoint_queue.queue_lock.acquire()
                         next_wp = self.waypoint_queue.queue[0]
                         self.waypoint_queue.queue_lock.release()
-                        data = json.dumps(next_wp, cls=WayPointEncoder)
+                        data = json.dumps(next_wp, cls=WayPointEncoder)  # TODO: remove the json.dumps
                         return self.create_packet(data)
 
                     elif (status_request['Key'] == "next_waypoints"):
@@ -93,7 +92,7 @@ class StatusHandler():
                         wpq = copy.deepcopy(self.waypoint_queue.queue)
                         self.waypoint_queue.queue_lock.release()
                         path_message = {'next_waypoints': wpq}
-                        data = json.dumps(path_message, cls=WayPointEncoder)
+                        data = json.dumps(path_message, cls=WayPointEncoder)  # TODO: remove the json.dumps
                         return self.create_packet(data)
 
                     elif (status_request['Key'] == "speed"):
