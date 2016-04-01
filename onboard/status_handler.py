@@ -80,8 +80,7 @@ class StatusHandler():
                     elif (status_request['key'] == "drone_type"):
                         self.stat_logger.info("Getting dronetype")
                         drone_type = self.solo.get_drone_type()
-                        dt_message = json.dumps(drone_type, cls=DroneTypeEncoder)
-                        return self.create_packet(dt_message)
+                        return self.create_packet(drone_type.__dict__, cls=DroneTypeEncoder)
 
                     elif (status_request['key'] == "waypoint_order"):
                         # TODO
@@ -93,7 +92,7 @@ class StatusHandler():
                         self.waypoint_queue.queue_lock.acquire()
                         next_wp = self.waypoint_queue.queue[0]
                         self.waypoint_queue.queue_lock.release()
-                        data = json.dumps(next_wp, cls=WayPointEncoder)
+                        data = json.dumps(next_wp, cls=WayPointEncoder)  # TODO: remove the json.dumps
                         return self.create_packet(data)
 
                     elif (status_request['key'] == "next_waypoints"):
@@ -101,7 +100,7 @@ class StatusHandler():
                         wpq = copy.deepcopy(self.waypoint_queue.queue)
                         self.waypoint_queue.queue_lock.release()
                         path_message = {'next_waypoints': wpq}
-                        data = json.dumps(path_message, cls=WayPointEncoder)
+                        data = json.dumps(path_message, cls=WayPointEncoder)  # TODO: remove the json.dumps
                         return self.create_packet(data)
 
                     elif (status_request['key'] == "speed"):
@@ -123,8 +122,12 @@ class StatusHandler():
                         target_height = self.solo.get_target_height()
                         data = {'selected_height': target_height}
                         return self.create_packet(data)
+                    elif (status_request['Key'] == "orientation"):
+                        orientation = self.solo.get_orientation()
+                        data = {'orientation': orientation}
+                        return self.create_packet(data)
 
-                    elif (status_request['key'] == "camera_angle"):
+                    elif (status_request['Key'] == "camera_angle"):
                         camera_angle = self.solo.get_camera_angle()
                         data = {'camera_angle': camera_angle}
                         return self.create_packet(data)

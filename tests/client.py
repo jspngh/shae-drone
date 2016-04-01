@@ -6,7 +6,7 @@ import sys
 sys.path.append('../onboard/')
 from global_classes import Location, WayPoint, WayPointEncoder
 
-HOST = "10.1.1.10"
+HOST = "localhost"
 PORT = 6330
 
 waypoints = []
@@ -29,7 +29,7 @@ json_config_message = json.dumps(config_message)
 emergency_message = {'MessageType': 'navigation', 'Message': 'emergency'}
 json_em_message = json.dumps(emergency_message)
 
-dronetype_message = {'MessageType': 'status', 'Message': [{'Key': 'drone_type'}]}
+dronetype_message = {'MessageType': 'status', 'Message': [{'Key': 'orientation'}]}
 json_dt_message = json.dumps(dronetype_message)
 
 
@@ -37,12 +37,16 @@ sock = socket.socket(socket.AF_INET,  # Internet
                      socket.SOCK_STREAM)  # TCP
 # Connect to server and send data
 sock.connect((HOST, PORT))
-sock.send(json_start_message)
-print "message sent"
-data = sock.recv(4)
-ack = struct.unpack(">I", data)[0]
+sock.send(struct.pack(">I", len(json_dt_message)))
+sock.send(json_dt_message)
+data = sock.recv(2)
+ack = struct.unpack(">H", data)[0]
 print ack
-time.sleep(4)
+data = sock.recv(2)
+length = struct.unpack(">H", data)[0]
+response = sock.recv(4)
+response = sock.recv(2048)
+print response
 
 # sock = socket.socket(socket.AF_INET,  # Internet
 #                      socket.SOCK_STREAM)  # TCP
@@ -54,23 +58,23 @@ time.sleep(4)
 # ack = struct.unpack(">I", data)[0]
 # print ack
 # time.sleep(4)
-
-sock = socket.socket(socket.AF_INET,  # Internet
-                     socket.SOCK_STREAM)  # TCP
-sock.connect((HOST, PORT))
-sock.send(json_path_message)
-print "message sent"
-data = sock.recv(4)
-ack = struct.unpack(">I", data)[0]
-print ack
-sock.close()
-time.sleep(120)
-
-sock = socket.socket(socket.AF_INET,  # Internet
-                     socket.SOCK_STREAM)  # TCP
-sock.connect((HOST, PORT))
-sock.send(json_em_message)
-data = sock.recv(4)
-ack = struct.unpack(">I", data)[0]
-print ack
-sock.close()
+#
+# sock = socket.socket(socket.AF_INET,  # Internet
+#                      socket.SOCK_STREAM)  # TCP
+# sock.connect((HOST, PORT))
+# sock.send(json_path_message)
+# print "message sent"
+# data = sock.recv(4)
+# ack = struct.unpack(">I", data)[0]
+# print ack
+# sock.close()
+# time.sleep(120)
+#
+# sock = socket.socket(socket.AF_INET,  # Internet
+#                      socket.SOCK_STREAM)  # TCP
+# sock.connect((HOST, PORT))
+# sock.send(json_em_message)
+# data = sock.recv(4)
+# ack = struct.unpack(">I", data)[0]
+# print ack
+# sock.close()
