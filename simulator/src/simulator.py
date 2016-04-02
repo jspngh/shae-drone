@@ -28,7 +28,7 @@ class Simulator:
             simulator_dir = os.path.join(parent_dir, "simulator")
 
         video_dir = os.path.join(simulator_dir, "videos")
-        video_footage = os.path.join(video_dir, "testfootage.mp4")
+        video_footage = os.path.join(video_dir, "testfootage.h264")
         server = os.path.join(onboard_dir, "server.py")
         control_module = os.path.join(onboard_dir, "control_module.py")
         if not (os.path.exists(video_footage) and
