@@ -53,10 +53,11 @@ class Simulator:
         sys.exit(0)
 
     def stop(self):
-        self.sitl.stop()
         self.server_process.send_signal(sig=signal.SIGINT)
         self.control_process.send_signal(sig=signal.SIGINT)
         self.stream_simulator.stop_thread()
+        time.sleep(0.5)
+        self.sitl.stop()
 
 
 if __name__ == '__main__':

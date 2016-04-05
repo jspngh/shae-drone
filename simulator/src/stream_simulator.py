@@ -1,5 +1,5 @@
 """
-To be able to run the simulator, you need to install the python bindings for vlc:
+To be able to run the simulator, the python bindings for vlc are needed:
 sudo pip install python-vlc
 """
 import vlc

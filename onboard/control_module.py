@@ -122,10 +122,11 @@ class ControlModule():
                 client.send(struct.pack(">I", MessageCodes.ERR))
 
     def close(self):
-        self.quit = True
-        self.logger.debug("closing vehicle")
-        self.vehicle.close()
-        self.nav_thread.stop_thread()
+        if not self.quit:
+            self.quit = True
+            self.nav_thread.stop_thread()
+            self.logger.debug("closing vehicle")
+            self.vehicle.close()
 
 
 def print_help():
