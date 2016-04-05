@@ -19,22 +19,28 @@ class Simulator:
         # Hardcoding relative paths should be avoided
         current_dir = os.path.abspath(os.curdir)
         parent_dir = os.path.dirname(current_dir)
-        onboard_dir = os.path.join(parent_dir, "onboard")
-        simulator_dir = os.path.join(parent_dir, "simulator")
+        drone_dir = os.path.join(parent_dir, "drone")
         # Search for the root directory containing the /simulator and /tests directory
-        while not (os.path.exists(onboard_dir) and os.path.exists(simulator_dir)):
-            parent_dir = os.path.dirname(parent_dir)
-            onboard_dir = os.path.join(parent_dir, "onboard")
-            simulator_dir = os.path.join(parent_dir, "simulator")
+        while not (os.path.exists(drone_dir)):
+            current_dir = parent_dir
+            parent_dir = os.path.dirname(current_dir)
+            if parent_dir == current_dir:
+                print "Could not find files"
+                sys.exit(1)  # we did not find one of the necessary files
+            drone_dir = os.path.join(parent_dir, "drone")
 
+        simulator_dir = os.path.join(drone_dir, "simulator")
+        onboard_dir = os.path.join(drone_dir, "onboard")
         video_dir = os.path.join(simulator_dir, "videos")
         video_footage = os.path.join(video_dir, "testfootage.h264")
         server = os.path.join(onboard_dir, "server.py")
         control_module = os.path.join(onboard_dir, "control_module.py")
-        if not (os.path.exists(video_footage) and
+        if not (os.path.exists(simulator_dir) and
+                os.path.exists(onboard_dir) and
+                os.path.exists(video_footage) and
                 os.path.exists(server) and
                 os.path.exists(control_module)):
-            print "Couldn't not find files"
+            print "Could not find files"
             sys.exit(1)  # we did not find one of the necessary files
 
         self.stream_simulator = StreamSimulator(video_footage)
