@@ -52,7 +52,7 @@ class StatusHandler():
 
                 data = {'current_location': loc, 'waypoint_order': wp_order, 'battery_level': battery, \
                         'speed': speed, 'selected_speed': target_speed, 'height': height, \
-                        'selected_height': target_height}
+                        'selected_height': target_height, 'type': 'Solo', 'manufacturer': '3DR'}
 
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=False)
 
