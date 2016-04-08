@@ -40,7 +40,7 @@ class TestOnboard(unittest.TestCase):
             self.assertEqual(wp.order, sorted_list[i])
 
     def test_dronetype_message(self):
-        dronetype_message = {'MessageType': 'status', 'Message': [{'Key': 'drone_type'}]}
+        dronetype_message = {'message_type': 'status', 'message': [{'key': 'drone_type'}]}
         json_dt_message = json.dumps(dronetype_message)
 
         sock = socket.socket(socket.AF_INET,  # Internet
@@ -62,7 +62,7 @@ class TestOnboard(unittest.TestCase):
         return
 
     def test_lift_off(self):
-        start_message = {'MessageType': 'navigation', 'Message': 'start'}
+        start_message = {'message_type': 'navigation', 'message': 'start'}
         json_start_message = json.dumps(start_message)
 
         sock = socket.socket(socket.AF_INET,  # Internet
@@ -88,7 +88,7 @@ class TestOnboard(unittest.TestCase):
         waypoints.append(WayPoint(location=tmp_loc_1, order=1))
         waypoints.append(WayPoint(location=tmp_loc_2, order=2))
         waypoints.append(WayPoint(location=tmp_loc_3, order=3))
-        path_message = {'MessageType': 'navigation', 'Message': 'path', 'Waypoints': waypoints}
+        path_message = {'message_type': 'navigation', 'message': 'path', 'waypoints': waypoints}
         json_path_message = json.dumps(path_message, cls=WayPointEncoder)
 
         sock = socket.socket(socket.AF_INET,  # Internet
@@ -106,9 +106,9 @@ class TestOnboard(unittest.TestCase):
         return
 
     def test_land(self):
-        stop_message = {'MessageType': 'navigation', 'Message': 'stop'}
+        stop_message = {'message_type': 'navigation', 'message': 'stop'}
         json_stop_message = json.dumps(stop_message)
-        emergency_message = {'MessageType': 'navigation', 'Message': 'emergency'}
+        emergency_message = {'message_type': 'navigation', 'message': 'emergency'}
         json_em_message = json.dumps(emergency_message)
 
         sock = socket.socket(socket.AF_INET,  # Internet

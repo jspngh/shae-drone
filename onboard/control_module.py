@@ -71,10 +71,10 @@ class ControlModule():
                 raw = client.recv(buffersize)
                 packet = json.loads(raw)  # parse the Json we received
                 if 'message_type' not in packet:  # every packet should have a MessageType field
-                    self.logger.info("every packet should have a MessageType field")
+                    self.logger.info("every packet should have a message_type field")
                     raise ValueError
                 if 'message' not in packet:  # every packet should have a Message field
-                    self.logger.info("every packet should have a Message field")
+                    self.logger.info("every packet should have a message field")
                     raise ValueError
 
                 message_type = packet['message_type']  # the 'message type' attribute tells us to which class of packet this packet belongs
