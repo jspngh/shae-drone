@@ -41,25 +41,50 @@ class StatusHandler():
     def handle_packet(self):
         try:
             if (self.message == "all_statuses"):  # TODO: all status attributes are requested
-                wp_order = -1  # TODO
+
+                self.waypoint_queue.queue_lock.acquire()
+                curr_wayp = self.waypoint_queue.current_waypoint
+                self.waypoint_queue.queue_lock.release()
+                if curr_wayp is None:
+                    wp_order = -1
+                else:
+                    wp_order = curr_wayp.order
                 battery = self.solo.get_battery_level()
                 loc = self.solo.get_location()
+                orientation = self.solo.get_orientation()
                 drone_type = self.solo.get_drone_type()
                 speed = self.solo.get_speed()
                 target_speed = self.solo.get_target_speed()
                 height = self.solo.get_height()
                 target_height = self.solo.get_target_height()
+                drone_type = self.solo.get_drone_type()
+                drone_type.__dict__
 
-                data = {'current_location': loc, 'waypoint_order': wp_order, 'battery_level': battery, \
-                        'speed': speed, 'selected_speed': target_speed, 'height': height, \
-                        'selected_height': target_height, 'type': 'Solo', 'manufacturer': '3DR'}
+                data = {'current_location': loc,
+                        'waypoint_order': wp_order,
+                        'battery_level': battery,
+                        'orientation': orientation,
+                        'speed': speed,
+                        'selected_speed': target_speed,
+                        'height': height,
+                        'selected_height': target_height,
+                        'dronetype': drone_type.__dict__}
 
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=False)
 
             elif (self.message == "heartbeat"):  # a heartbeat was requested
+                self.waypoint_queue.queue_lock.acquire()
+                curr_wayp = self.waypoint_queue.current_waypoint
+                self.waypoint_queue.queue_lock.release()
+                if curr_wayp is None:
+                    wp_order = -1
+                else:
+                    wp_order = curr_wayp.order
+                battery = self.solo.get_battery_level()
                 loc = self.solo.get_location()
-                wp_order = -1  # TODO
-                data = {'current_location': loc, 'waypoint_order': wp_order}
+                orientation = self.solo.get_orientation()
+                data = {'current_location': loc, 'waypoint_order': wp_order, 'orientation': orientation, 'battery_level': battery}
+
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=True)
 
             else:                                       # this is an array with the attributes that were required
@@ -80,7 +105,7 @@ class StatusHandler():
                     elif (status_request['key'] == "drone_type"):
                         self.stat_logger.info("Getting dronetype")
                         drone_type = self.solo.get_drone_type()
-                        return self.create_packet(drone_type.__dict__, cls=DroneTypeEncoder)
+                        return self.create_packet({'dronetype': drone_type}, cls=DroneTypeEncoder)
 
                     elif (status_request['key'] == "waypoint_order"):
                         # TODO
