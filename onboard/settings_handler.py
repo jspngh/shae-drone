@@ -17,12 +17,12 @@ class SettingsHandler():
     """
     This class will take care of packets of the 'settings' message type
     """
-    def __init__(self, packet, message, solo, logging_level):
+    def __init__(self, solo, logging_level):
         """
         :type solo: Solo
         """
-        self.packet = packet
-        self.message = message
+        self.packet = None
+        self.message = None
         self.solo = solo
 
         # set up logging
@@ -34,7 +34,9 @@ class SettingsHandler():
         self.settings_logger.addHandler(handler)
         self.settings_logger.setLevel(logging_level)
 
-    def handle_packet(self):
+    def handle_packet(self, packet, message):
+        self.packet = packet
+        self.message = message
         try:
             if (self.message == "workstation_config"):  # set the workstation configuration and start sending heartbeats
                 self.settings_logger.info("Extracting configuration")
@@ -52,10 +54,12 @@ class SettingsHandler():
                     if (setting_request['key'] == "speed"):
                         value = setting_request['value']
                         self.solo.set_target_speed(value)
-                        print "handle"
                     elif (setting_request['key'] == "height"):
                         value = setting_request['value']
                         self.solo.set_target_height(value)
+                    elif (setting_request['key'] == "distance_threshold"):
+                        value = setting_request['value']
+                        self.solo.set_distance_threshold(value)
                     elif (setting_request['key'] == "camera_angle"):
                         value = setting_request['value']
                         self.solo.set_camera_angle(value)

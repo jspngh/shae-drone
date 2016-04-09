@@ -11,7 +11,7 @@ from threading import RLock
 from dronekit import connect, time
 
 from solo import Solo
-from navigation_handler import NavigationHandler
+from navigation_handler import NavigationHandler, NavigationThread
 from settings_handler import SettingsHandler
 from status_handler import StatusHandler
 from global_classes import MessageCodes, WayPointQueue, logformat, dateformat
@@ -48,7 +48,11 @@ class ControlModule():
             self.unix_socket.bind("/tmp/uds_control")
             self.unix_socket.listen(2)
 
-            self.nav_thread = NavigationHandler.NavigationThread(1, solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
+            self.nav_thread = NavigationThread(1, solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
+            self.nav_handler = NavigationHandler(self.solo, self.waypoint_queue, self.nav_thread, logging_level=self.log_level)
+            self.stat_handler = StatusHandler(self.solo, self.waypoint_queue, logging_level=self.log_level)
+            self.setting_handler = SettingsHandler(self.solo, logging_level=self.log_level)
+
             self.logger.debug("Starting Navigation Thread")
             self.nav_thread.start()
         except socket.error, msg:
@@ -81,13 +85,11 @@ class ControlModule():
                 message = packet['message']           # the 'message' attribute tells what packet it is, within it's class
                 if (message_type == "navigation"):
                     self.logger.info("received a navigation request")
-                    nav_handler = NavigationHandler(packet, message, self.solo, self.waypoint_queue, logging_level=self.log_level)
-                    nav_handler.handle_packet()
+                    self.nav_handler.handle_packet(packet, message)
                     client.send(struct.pack(">I", MessageCodes.ACK))
                 elif (message_type == "status"):
                     self.logger.info("received a status request")
-                    stat_handler = StatusHandler(packet, message, self.solo, self.waypoint_queue, logging_level=self.log_level)
-                    response = stat_handler.handle_packet()
+                    response = self.stat_handler.handle_packet(packet, message)
                     if response is None:
                         client.send(struct.pack(">I", MessageCodes.ERR))  # something went wrong
                     else:
@@ -96,8 +98,7 @@ class ControlModule():
                         client.send(response)
                 elif (message_type == "settings"):
                     self.logger.info("received a settings request")
-                    sett_handler = SettingsHandler(packet, message, self.solo, logging_level=self.log_level)
-                    response = sett_handler.handle_packet()
+                    response = self.setting_handler.handle_packet(packet, message)
                     # if we got a response, that means we need to start sending heartbeats
                     if response is not None and isinstance(response, tuple):
                         self.logger.info("Settings heartbeat configuration")

@@ -10,12 +10,14 @@ from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logfo
 
 
 class Solo:
-    def __init__(self, vehicle, height=5, speed=10, update_rate=15, logging_level=logging.CRITICAL):
+    def __init__(self, vehicle, height=6, speed=5, update_rate=15, logging_level=logging.CRITICAL):
         """
         :type vehicle: Vehicle
         """
         self.goproManager = GoProManager(logging_level=logging_level)
         self.vehicle = vehicle
+        self.is_halted = False  # when this becomes 'True', the solo should stop visiting waypoints
+
         # receive GoPro messages
         self.vehicle.add_attribute_listener('gopro_status', self.goproManager.state_callback)
         self.vehicle.add_attribute_listener(attr_name='GOPRO_GET_RESPONSE', observer=self.goproManager.get_response_callback)
@@ -27,6 +29,7 @@ class Solo:
         self.last_send_move = 0
         self.last_send_translate = 0
 
+        self.distance_threshold = 1
         self.update_rate = update_rate
         self.height = height
         self.speed = speed
@@ -45,23 +48,6 @@ class Solo:
         self.logger.setLevel(logging_level)
 
         return
-
-    # Get all vehicle attributes (state)
-    def print_state(self):
-        print "Vehicle state:"
-        print " Global Location: %s" % self.vehicle.location.global_frame
-        print " Global Location (relative altitude): %s" % self.vehicle.location.global_relative_frame
-        print " Local Location: %s" % self.vehicle.location.local_frame
-        print " Attitude: %s" % self.vehicle.attitude
-        print " Velocity: %s" % self.vehicle.velocity
-        print " Battery: %s" % self.vehicle.battery
-        print " Last Heartbeat: %s" % self.vehicle.last_heartbeat
-        print " Heading: %s" % self.vehicle.heading
-        print " Groundspeed: %s" % self.vehicle.groundspeed
-        print " Airspeed: %s" % self.vehicle.airspeed
-        print " Mode: %s" % self.vehicle.mode.name
-        print " Is Armable?: %s" % self.vehicle.is_armable
-        print " Armed: %s" % self.vehicle.armed
 
     def arm(self):
         self.vehicle.mode = VehicleMode("GUIDED")
@@ -83,6 +69,9 @@ class Solo:
         self.vehicle.send_mavlink(msg)
         self.vehicle.flush()
         self.vehicle.mode = mode
+
+    def halt(self):
+        self.is_halted = True
 
     # land - Land the solo moving
     def land(self):
@@ -156,7 +145,7 @@ class Solo:
         self.last_send_point = time.time()
 
     # step_left - Send the solo left some distance - params: distance meters
-    def translate(self, x=0, y=0, z=0, wait_for_arrival=False, dist_thres=0.3):
+    def translate(self, x=0, y=0, z=0, wait_for_arrival=False):
         if self.fence_breach:
             raise StandardError("You are outside of the fence")
         if self.vehicle.mode != 'GUIDED':
@@ -205,13 +194,13 @@ class Solo:
                 diff_lon_m = (lon - veh_loc.lon) * latlon_to_m
                 diff_alt_m = alt - veh_loc.alt
                 dist_xyz = math.sqrt(diff_lat_m**2 + diff_lon_m**2 + diff_alt_m**2)
-                if dist_xyz < dist_thres:
+                if dist_xyz < self.distance_threshold:
                     self.logger.info("Arrived")
                     return
             self.logger.error('\033[93m' + "DroneDirectError: 'translate({0},{1},{2})' was interrupted. \
                               Vehicle was switched out of GUIDED mode".format(x, y, z) + '\033[0m')
 
-    def visit_waypoint(self, waypoint, dist_thres=0.3):
+    def visit_waypoint(self, waypoint):
         """
         :type waypoint: WayPoint
         """
@@ -226,10 +215,14 @@ class Solo:
             diff_lon_m = (location.lon - veh_loc.lon) * latlon_to_m
             diff_alt_m = location.alt - veh_loc.alt
             dist_xyz = math.sqrt(diff_lat_m**2 + diff_lon_m**2 + diff_alt_m**2)
-            if dist_xyz > dist_thres:
+            if dist_xyz > self.distance_threshold and not self.is_halted:
                 time.sleep(0.5)
             else:
-                self.logger.info("Solo arrived at waypoint")
+                if not self.is_halted:
+                    self.logger.info("Solo arrived at waypoint")
+                else:
+                    self.logger.info("Solo was halted")
+                    self.is_halted = False  # reset the self.is_halted attribute
                 return
 
     def get_battery_level(self):
@@ -252,6 +245,10 @@ class Solo:
 
     def set_target_speed(self, speed):
         self.speed = speed
+        return
+
+    def set_distance_threshold(self, threshold):
+        self.distance_threshold = threshold
         return
 
     def get_height(self):

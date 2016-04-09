@@ -5,8 +5,8 @@ import json
 import socket
 import struct
 import logging
-import threading
 import datetime
+import threading
 from logging import Logger
 from threading import RLock
 from dronekit import connect, time
@@ -19,13 +19,13 @@ class StatusHandler():
     """
     This class will take care of packets of the 'status' message type
     """
-    def __init__(self, packet, message, solo, queue, logging_level):
+    def __init__(self, solo, queue, logging_level):
         """
         :type solo: Solo
         :type queue: WayPointQueue
         """
-        self.packet = packet
-        self.message = message
+        self.packet = None
+        self.message = None
         self.solo = solo
         self.waypoint_queue = queue
 
@@ -38,28 +38,54 @@ class StatusHandler():
         self.stat_logger.addHandler(handler)
         self.stat_logger.setLevel(logging_level)
 
-    def handle_packet(self):
+    def handle_packet(self, packet, message):
+        self.packet = packet
+        self.message = message
         try:
             if (self.message == "all_statuses"):  # TODO: all status attributes are requested
-                wp_order = -1  # TODO
+                self.waypoint_queue.queue_lock.acquire()
+                curr_wayp = self.waypoint_queue.current_waypoint
+                self.waypoint_queue.queue_lock.release()
+                if curr_wayp is None:
+                    wp_order = -1
+                else:
+                    wp_order = curr_wayp.order
                 battery = self.solo.get_battery_level()
                 loc = self.solo.get_location()
+                orientation = self.solo.get_orientation()
                 drone_type = self.solo.get_drone_type()
                 speed = self.solo.get_speed()
                 target_speed = self.solo.get_target_speed()
                 height = self.solo.get_height()
                 target_height = self.solo.get_target_height()
+                drone_type = self.solo.get_drone_type()
+                drone_type.__dict__
 
-                data = {'current_location': loc, 'waypoint_order': wp_order, 'battery_level': battery, \
-                        'speed': speed, 'selected_speed': target_speed, 'height': height, \
-                        'selected_height': target_height, 'type': 'Solo', 'manufacturer': '3DR'}
+                data = {'current_location': loc,
+                        'waypoint_order': wp_order,
+                        'battery_level': battery,
+                        'orientation': orientation,
+                        'speed': speed,
+                        'selected_speed': target_speed,
+                        'height': height,
+                        'selected_height': target_height,
+                        'dronetype': drone_type.__dict__}
 
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=False)
 
             elif (self.message == "heartbeat"):  # a heartbeat was requested
+                self.waypoint_queue.queue_lock.acquire()
+                curr_wayp = self.waypoint_queue.current_waypoint
+                self.waypoint_queue.queue_lock.release()
+                if curr_wayp is None:
+                    wp_order = -1
+                else:
+                    wp_order = curr_wayp.order
+                battery = self.solo.get_battery_level()
                 loc = self.solo.get_location()
-                wp_order = -1  # TODO
-                data = {'current_location': loc, 'waypoint_order': wp_order}
+                orientation = self.solo.get_orientation()
+                data = {'current_location': loc, 'waypoint_order': wp_order, 'orientation': orientation, 'battery_level': battery}
+
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=True)
 
             else:                                       # this is an array with the attributes that were required
@@ -80,10 +106,9 @@ class StatusHandler():
                     elif (status_request['key'] == "drone_type"):
                         self.stat_logger.info("Getting dronetype")
                         drone_type = self.solo.get_drone_type()
-                        return self.create_packet(drone_type.__dict__, cls=DroneTypeEncoder)
+                        return self.create_packet({'dronetype': drone_type}, cls=DroneTypeEncoder)
 
                     elif (status_request['key'] == "waypoint_order"):
-                        # TODO
                         # this message is obsolete, instead the drone will let the workstation know whether
                         # it has reached the next waypoint through its status
                         self.stat_logger.info("Obsolete waypoint reached message received")
@@ -122,6 +147,7 @@ class StatusHandler():
                         target_height = self.solo.get_target_height()
                         data = {'selected_height': target_height}
                         return self.create_packet(data)
+
                     elif (status_request['Key'] == "orientation"):
                         orientation = self.solo.get_orientation()
                         data = {'orientation': orientation}
@@ -154,7 +180,7 @@ class StatusHandler():
         now = time.time()
         localtime = time.localtime(now)
         milliseconds = '%03d' % int((now - int(now)) * 1000)
-        timestamp = time.strftime('%Y/%m/%d-%H:%M:%S:', localtime) + milliseconds
+        timestamp = time.strftime('%d%m%Y%H%M%S', localtime) + milliseconds
 
         if heartbeat:
             data.update({'message_type': 'status', 'timestamp': timestamp, 'heartbeat': True})
