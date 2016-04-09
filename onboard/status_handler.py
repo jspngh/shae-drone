@@ -154,7 +154,7 @@ class StatusHandler():
         now = time.time()
         localtime = time.localtime(now)
         milliseconds = '%03d' % int((now - int(now)) * 1000)
-        timestamp = time.strftime('%Y/%m/%d-%H:%M:%S:', localtime) + milliseconds
+        timestamp = time.strftime('%d%m%Y%H%M%S', localtime) + milliseconds
 
         if heartbeat:
             data.update({'message_type': 'status', 'timestamp': timestamp, 'heartbeat': True})
