@@ -5,8 +5,8 @@ import json
 import socket
 import struct
 import logging
-import threading
 import datetime
+import threading
 from logging import Logger
 from threading import RLock
 from dronekit import connect, time
@@ -19,13 +19,13 @@ class StatusHandler():
     """
     This class will take care of packets of the 'status' message type
     """
-    def __init__(self, packet, message, solo, queue, logging_level):
+    def __init__(self, solo, queue, logging_level):
         """
         :type solo: Solo
         :type queue: WayPointQueue
         """
-        self.packet = packet
-        self.message = message
+        self.packet = None
+        self.message = None
         self.solo = solo
         self.waypoint_queue = queue
 
@@ -38,10 +38,11 @@ class StatusHandler():
         self.stat_logger.addHandler(handler)
         self.stat_logger.setLevel(logging_level)
 
-    def handle_packet(self):
+    def handle_packet(self, packet, message):
+        self.packet = packet
+        self.message = message
         try:
             if (self.message == "all_statuses"):  # TODO: all status attributes are requested
-
                 self.waypoint_queue.queue_lock.acquire()
                 curr_wayp = self.waypoint_queue.current_waypoint
                 self.waypoint_queue.queue_lock.release()
@@ -69,7 +70,6 @@ class StatusHandler():
                         'height': height,
                         'selected_height': target_height,
                         'drone_type': drone_type.__dict__}
-
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=False)
 
             elif (self.message == "heartbeat"):  # a heartbeat was requested
@@ -108,7 +108,6 @@ class StatusHandler():
                         return self.create_packet({'drone_type': drone_type}, cls=DroneTypeEncoder)
 
                     elif (status_request['key'] == "waypoint_order"):
-                        # TODO
                         # this message is obsolete, instead the drone will let the workstation know whether
                         # it has reached the next waypoint through its status
                         self.stat_logger.info("Obsolete waypoint reached message received")
@@ -147,6 +146,7 @@ class StatusHandler():
                         target_height = self.solo.get_target_height()
                         data = {'selected_height': target_height}
                         return self.create_packet(data)
+
                     elif (status_request['Key'] == "orientation"):
                         orientation = self.solo.get_orientation()
                         data = {'orientation': orientation}

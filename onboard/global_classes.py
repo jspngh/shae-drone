@@ -23,7 +23,7 @@ class DroneTypeEncoder(JSONEncoder):
     def default(self, drone):
         if isinstance(drone, DroneType):
             dt = {'manufacturer': drone.manufacturer, 'model': drone.model}
-            return {'drone_type': dt}
+            return dt
 
 
 class Location():
