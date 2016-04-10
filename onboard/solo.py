@@ -211,7 +211,7 @@ class Solo:
             self.logger.error('\033[93m' + "DroneDirectError: 'translate({0},{1},{2})' was interrupted. \
                               Vehicle was switched out of GUIDED mode".format(x, y, z) + '\033[0m')
 
-    def visit_waypoint(self, waypoint, dist_thres=0.3):
+    def visit_waypoint(self, waypoint, dist_thres=1.0):
         """
         :type waypoint: WayPoint
         """
