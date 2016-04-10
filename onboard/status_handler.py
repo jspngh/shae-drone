@@ -69,8 +69,7 @@ class StatusHandler():
                         'selected_speed': target_speed,
                         'height': height,
                         'selected_height': target_height,
-                        'dronetype': drone_type.__dict__}
-
+                        'drone_type': drone_type.__dict__}
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=False)
 
             elif (self.message == "heartbeat"):  # a heartbeat was requested
@@ -106,7 +105,7 @@ class StatusHandler():
                     elif (status_request['key'] == "drone_type"):
                         self.stat_logger.info("Getting dronetype")
                         drone_type = self.solo.get_drone_type()
-                        return self.create_packet({'dronetype': drone_type}, cls=DroneTypeEncoder)
+                        return self.create_packet({'drone_type': drone_type}, cls=DroneTypeEncoder)
 
                     elif (status_request['key'] == "waypoint_order"):
                         # this message is obsolete, instead the drone will let the workstation know whether
