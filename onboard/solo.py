@@ -29,7 +29,7 @@ class Solo:
         self.last_send_move = 0
         self.last_send_translate = 0
 
-        self.distance_threshold = 1
+        self.distance_threshold = 1.0
         self.update_rate = update_rate
         self.height = height
         self.speed = speed

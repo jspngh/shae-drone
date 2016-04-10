@@ -195,7 +195,7 @@ class HeartBeatThread (threading.Thread):
                 self.logger.debug("Socket error: {0}".format(msg))
 
             # sleep 500ms before requesting another heartbeat
-            time.sleep(2)  # time.sleep(0.5)
+            time.sleep(1)  # time.sleep(0.5)
 
     def configure(self, host, port):
         self.workstation_ip = host
