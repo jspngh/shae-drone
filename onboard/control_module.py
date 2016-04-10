@@ -37,6 +37,11 @@ class ControlModule():
         # handle signals to exit gracefully
         signal.signal(signal.SIGINT, self.sigint_handler)
 
+        self.nav_thread = None
+        self.nav_handler = None
+        self.stat_handler = None
+        self.setting_handler = None
+
         self.waypoint_queue = WayPointQueue()  # in this queue, the waypoints the drone has to visit will come
         self.unix_socket = socket.socket(socket.AF_UNIX,      # Unix Domain Socket
                                          socket.SOCK_STREAM)  # TCP
@@ -125,7 +130,8 @@ class ControlModule():
     def close(self):
         if not self.quit:
             self.quit = True
-            self.nav_thread.stop_thread()
+            if self.nav_thread is not None:
+                self.nav_thread.stop_thread()
             self.logger.debug("closing vehicle")
             self.vehicle.close()
 

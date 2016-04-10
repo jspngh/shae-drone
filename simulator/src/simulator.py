@@ -20,17 +20,25 @@ class Simulator:
         current_dir = os.path.abspath(os.curdir)
         parent_dir = os.path.dirname(current_dir)
         drone_dir = os.path.join(parent_dir, "drone")
-        # Search for the root directory containing the /simulator and /tests directory
-        while not (os.path.exists(drone_dir)):
+        simulator_dir = os.path.join(parent_dir, "simulator")
+        onboard_dir = os.path.join(parent_dir, "onboard")
+        # Search for the drone directory containing the /simulator and /onboard directories
+        # Or stop if we find the /simulator and /onboard directories
+        while not (os.path.exists(drone_dir) or (os.path.exists(simulator_dir) and os.path.exists(onboard_dir))):
             current_dir = parent_dir
             parent_dir = os.path.dirname(current_dir)
             if parent_dir == current_dir:
                 print "Could not find files"
                 sys.exit(1)  # we did not find one of the necessary files
             drone_dir = os.path.join(parent_dir, "drone")
+            simulator_dir = os.path.join(parent_dir, "simulator")
+            onboard_dir = os.path.join(parent_dir, "onboard")
 
-        simulator_dir = os.path.join(drone_dir, "simulator")
-        onboard_dir = os.path.join(drone_dir, "onboard")
+        if os.path.exists(drone_dir):
+            # we found the drone directory
+            simulator_dir = os.path.join(drone_dir, "simulator")
+            onboard_dir = os.path.join(drone_dir, "onboard")
+
         video_dir = os.path.join(simulator_dir, "videos")
         video_footage = os.path.join(video_dir, "testfootage.h264")
         server = os.path.join(onboard_dir, "server.py")
