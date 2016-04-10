@@ -1,5 +1,3 @@
-import os
-# from setuptools import setunet
 from distutils.core import setup
 
 # Utility function to read the README file.
