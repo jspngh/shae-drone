@@ -61,6 +61,8 @@ class StreamSimulator(threading.Thread):
             media = self.Instance.media_new(self.footage, options)
             self.player.set_media(media)
             self.player.play()
+        else:
+            self.videosocket.close()
 
     def stop_thread(self):
         self.logger.debug("stopping stream simulator")

@@ -54,8 +54,10 @@ class Simulator:
         self.stream_simulator = StreamSimulator(video_footage)
         self.stream_simulator.start()
 
-        self.server_process = Popen(['python2', server, '--level', 'debug', '--simulate'])
-        self.control_process = Popen(['python2', control_module, '--level', 'debug', '--simulate'])
+        env_vars = os.environ.copy()
+        env_vars["COVERAGE_PROCESS_START"] = ".coveragerc"
+        self.server_process = Popen(['python2', server, '--level', 'debug', '--simulate'], env=env_vars)
+        self.control_process = Popen(['python2', control_module, '--level', 'debug', '--simulate'], env=env_vars)
 
         # capture kill signals to send it to the subprocesses
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -67,8 +69,10 @@ class Simulator:
         sys.exit(0)
 
     def stop(self):
-        self.server_process.send_signal(sig=signal.SIGINT)
-        self.control_process.send_signal(sig=signal.SIGINT)
+        self.server_process.send_signal(sig=signal.SIGTERM)
+        self.control_process.send_signal(sig=signal.SIGTERM)
+        self.server_process.wait()
+        self.control_process.wait()
         self.stream_simulator.stop_thread()
         time.sleep(0.5)
         self.sitl.stop()
