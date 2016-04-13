@@ -39,12 +39,12 @@ class Server():
             self.heartbeat_thread = HeartBeatThread(0, self.logger)
 
             # handle signals to exit gracefully
-            signal.signal(signal.SIGINT, self.sigint_handler)
+            signal.signal(signal.SIGTERM, self.sigterm_handler)
         except socket.error, msg:
             self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
             self.close()
 
-    def sigint_handler(self, signal, frame):
+    def sigterm_handler(self, signal, frame):
         self.close()
         self.logger.debug("exiting the process")
 

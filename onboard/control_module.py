@@ -35,7 +35,7 @@ class ControlModule():
             self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
 
         # handle signals to exit gracefully
-        signal.signal(signal.SIGINT, self.sigint_handler)
+        signal.signal(signal.SIGTERM, self.sigterm_handler)
 
         self.nav_thread = None
         self.nav_handler = None
@@ -64,7 +64,7 @@ class ControlModule():
             self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
             self.close()
 
-    def sigint_handler(self, signal, frame):
+    def sigterm_handler(self, signal, frame):
         self.close()
         self.logger.debug("exiting the process")
 
