@@ -24,12 +24,17 @@ class Server():
         self.logger = logger
         self.heartbeat_thread = None
 
+        # Drone specific fields
         if SIM:
             self.HOST = "localhost"
+            self.streamFile = "rtp://127.0.0.1:5000"
         else:
             self.HOST = "10.1.1.10"
+            self.streamFile = "sololink.sdp"
+
         self.PORT = 6330
         self.streamPort = 5502
+        self.visionWidth = 0.0001
 
         self.quit = False
 
@@ -80,26 +85,25 @@ class Server():
             self.heartbeat_thread.stop_thread()
 
     def wait_for_control_module(self):
-        print 'hello1'
         while not os.path.exists('cm_ready'):
             time.sleep(2)
-            print "hello2"
         cm_mod_time = os.path.getmtime('cm_ready')
-        print 'hello'
         curr_time = time.time()
         while(curr_time - cm_mod_time > 10):
             time.sleep(2)
             cm_mod_time = os.path.getmtime('cm_ready')
             curr_time = time.time()
-            print 'hello4'
-        print "hello3"
+
+        self.logger.info("Control mmodule is running...")
 
     def broadcast_hello_message(self):
         hello = {
                     "message_type": "hello",
                     "ip_drone": self.HOST,
                     "port_stream": self.streamPort,
-                    "port_commands": self.PORT
+                    "port_commands": self.PORT,
+                    "stream_file": self.streamFile,
+                    "vision_width": self.visionWidth
                 }
         hello_json = json.dumps(hello)
 
