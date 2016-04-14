@@ -24,9 +24,11 @@ class Server():
         self.logger = logger
         self.heartbeat_thread = None
 
+        self.helloPort = 4849
+
         # Drone specific fields
         if SIM:
-            self.HOST = "localhost"
+            self.HOST = "127.0.0.1"
             self.streamFile = "rtp://127.0.0.1:5000"
         else:
             self.HOST = "10.1.1.10"
@@ -114,9 +116,9 @@ class Server():
         bcsocket.bind(('', 0)) # OS will select available port
         if self.SIM:
             # not possible to broadcast on localhost network
-            bcsocket.sendto(hello_json, ("127.0.0.1", 4849))
+            bcsocket.sendto(hello_json, ("127.0.0.1", self.helloPort))
         else:
-            bcsocket.sendto(hello_json, ("10.1.1.255", 4849))
+            bcsocket.sendto(hello_json, ("10.1.1.255",self.helloPort))
 
 
 class ControlThread (threading.Thread):
