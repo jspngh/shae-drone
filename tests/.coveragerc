@@ -1,7 +1,8 @@
 [run]
 branch = True
 omit = */usr/lib/python2.7/*
-       *GoPro*
+       */usr/local/lib/python2.7/*
+       *GoPro
 
 [report]
 # Regexes for lines to exclude from consideration
@@ -22,3 +23,7 @@ exclude_lines =
     if __name__ == .__main__.:
 
 ignore_errors = True
+
+omit = */usr/lib/python2.7/*
+       */usr/local/lib/python2.7/*
+       *GoPro*
