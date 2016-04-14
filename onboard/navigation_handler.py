@@ -98,6 +98,7 @@ class NavigationHandler():
         self.navigation_thread.return_to_home()
 
     def handle_emergency_packet(self):
+        self.navigation_thread.stop_thread()
         self.solo.land()
 
 
