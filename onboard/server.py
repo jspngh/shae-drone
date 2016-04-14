@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import json
@@ -18,6 +19,8 @@ class Server():
         :type logger: Logger
         :type SIM: bool
         """
+        self.SIM = SIM
+
         self.logger = logger
         self.heartbeat_thread = None
 
@@ -26,6 +29,8 @@ class Server():
         else:
             self.HOST = "10.1.1.10"
         self.PORT = 6330
+        self.streamPort = 5502
+
         self.quit = False
 
         self.serversocket = socket.socket(socket.AF_INET,      # Internet
@@ -49,6 +54,8 @@ class Server():
         self.logger.debug("exiting the process")
 
     def run(self):
+        self.wait_for_control_module()
+        self.broadcast_hello_message()
         while not self.quit:
             try:
                 client, address = self.serversocket.accept()
@@ -71,6 +78,41 @@ class Server():
         self.logger.debug("Stopping the server")
         if self.heartbeat_thread is not None:
             self.heartbeat_thread.stop_thread()
+
+    def wait_for_control_module(self):
+        print 'hello1'
+        while not os.path.exists('cm_ready'):
+            time.sleep(2)
+            print "hello2"
+        cm_mod_time = os.path.getmtime('cm_ready')
+        print 'hello'
+        curr_time = time.time()
+        while(curr_time - cm_mod_time > 10):
+            time.sleep(2)
+            cm_mod_time = os.path.getmtime('cm_ready')
+            curr_time = time.time()
+            print 'hello4'
+        print "hello3"
+
+    def broadcast_hello_message(self):
+        hello = {
+                    "message_type": "hello",
+                    "ip_drone": self.HOST,
+                    "port_stream": self.streamPort,
+                    "port_commands": self.PORT
+                }
+        hello_json = json.dumps(hello)
+
+        bcsocket = socket.socket(socket.AF_INET,    # Internet
+                                 socket.SOCK_DGRAM) # UDP
+        bcsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        bcsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        bcsocket.bind(('', 0)) # OS will select available port
+        if self.SIM:
+            # not possible to broadcast on localhost network
+            bcsocket.sendto(hello_json, ("127.0.0.1", 4849))
+        else:
+            bcsocket.sendto(hello_json, ("10.1.1.255", 4849))
 
 
 class ControlThread (threading.Thread):
