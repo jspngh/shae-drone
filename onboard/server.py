@@ -77,6 +77,8 @@ class Server():
         self.logger.debug("Stopping the server")
         if self.heartbeat_thread is not None:
             self.heartbeat_thread.stop_thread()
+        if self.broadcast_thread is not None:
+            self.broadcast_thread.stop_thread()
 
 
 class ControlThread (threading.Thread):
@@ -267,6 +269,7 @@ class BroadcastThread(threading.Thread):
         bcsocket.bind(('', 0))  # OS will select available port
         while not self.quit:
             bcsocket.sendto(hello_json, (self.broadcast_address, self.helloPort))
+            self.logger.debug("Broadcasting hello")
             try:
                 raw_response, address = bcsocket.recvfrom(1024)
                 response = json.loads(raw_response)
@@ -277,9 +280,9 @@ class BroadcastThread(threading.Thread):
             except socket.timeout:
                 pass
 
-        def stop_thread(self):
-            self.logger.debug("Stopping broadcast thread")
-            self.quit = True
+    def stop_thread(self):
+        self.logger.debug("Stopping broadcast thread")
+        self.quit = True
 
 
 def print_help():
