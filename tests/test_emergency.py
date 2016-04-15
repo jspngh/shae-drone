@@ -11,7 +11,7 @@ from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue
 from simulator import Simulator
 
 
-class TestNavigation(unittest.TestCase):
+class TestEmergency(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.sim = Simulator()

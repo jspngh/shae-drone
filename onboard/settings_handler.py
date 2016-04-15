@@ -1,16 +1,8 @@
-import os
 import sys
-import json
-import socket
-import struct
-import threading
 import logging
-from logging import Logger
-from threading import RLock
-from dronekit import connect, time
 
 from solo import Solo
-from global_classes import Location, WayPoint, WayPointEncoder, logformat, dateformat
+from global_classes import logformat, dateformat
 
 
 class SettingsHandler():
