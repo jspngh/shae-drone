@@ -1,18 +1,11 @@
-import os
 import sys
 import copy
 import json
-import socket
-import struct
 import logging
-import datetime
-import threading
-from logging import Logger
-from threading import RLock
-from dronekit import connect, time
+from dronekit import time
 
 from solo import Solo
-from global_classes import DroneType, DroneTypeEncoder, Location, LocationEncoder, WayPoint, WayPointEncoder, WayPointQueue, logformat, dateformat
+from global_classes import DroneTypeEncoder, LocationEncoder, WayPoint, WayPointEncoder, WayPointQueue, logformat, dateformat
 
 
 class StatusHandler():

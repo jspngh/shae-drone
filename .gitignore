@@ -1,3 +1,6 @@
 # add files to ignore
 *.pyc
 .coverage
+*cm_ready
+
+simulator/src/cm_ready

@@ -1,12 +1,7 @@
-import os
 import sys
-import json
-import socket
-import struct
 import logging
 import threading
-from logging import Logger
-from dronekit import connect, time
+from dronekit import time
 
 from solo import Solo
 from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue, logformat, dateformat
@@ -107,13 +102,12 @@ class NavigationThread (threading.Thread):
     This class will run in another thread
     and fly to the waypoints in the waypoint_queue
     """
-    def __init__(self, threadID, solo, waypoint_queue, logging_level):
+    def __init__(self, solo, waypoint_queue, logging_level):
         """
         :type solo: Solo
         :type waypoint_queue: WayPointQueue
         """
         threading.Thread.__init__(self)
-        self.threadID = threadID
         self.solo = solo
         self.waypoint_queue = waypoint_queue
         self.quit = False

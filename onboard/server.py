@@ -1,3 +1,4 @@
+import os
 import sys
 import time
 import json
@@ -7,7 +8,6 @@ import socket
 import getopt
 import logging
 import threading
-from logging import Logger
 
 from global_classes import MessageCodes, logformat, dateformat
 
@@ -15,16 +15,19 @@ from global_classes import MessageCodes, logformat, dateformat
 class Server():
     def __init__(self, logger, SIM):
         """
-        :type logger: Logger
+        :type logger: logging.Logger
         :type SIM: bool
         """
+        self.SIM = SIM
         self.logger = logger
         self.heartbeat_thread = None
 
+        # Drone specific fields
         if SIM:
-            self.HOST = "localhost"
+            self.HOST = "127.0.0.1"
         else:
             self.HOST = "10.1.1.10"
+
         self.PORT = 6330
         self.quit = False
 
@@ -36,7 +39,8 @@ class Server():
             self.serversocket.bind((self.HOST, self.PORT))
             self.serversocket.listen(1)  # become a server socket, only 1 connection allowed
 
-            self.heartbeat_thread = HeartBeatThread(0, self.logger)
+            self.heartbeat_thread = HeartBeatThread(self.logger)
+            self.broadcast_thread = BroadcastThread(self.logger, self.SIM, self.PORT)
 
             # handle signals to exit gracefully
             signal.signal(signal.SIGTERM, self.sigterm_handler)
@@ -49,9 +53,11 @@ class Server():
         self.logger.debug("exiting the process")
 
     def run(self):
+        self.broadcast_thread.start()
         while not self.quit:
             try:
                 client, address = self.serversocket.accept()
+                self.broadcast_thread.stop_thread()
                 length = client.recv(4)
                 if length is not None:
                     buffersize = struct.unpack(">I", length)[0]
@@ -59,7 +65,7 @@ class Server():
                 self.logger.info("Server received a message:")
                 self.logger.info(raw)
                 control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
-                control_thread = ControlThread(1, raw, control_socket=control_socket, client_socket=client,
+                control_thread = ControlThread(raw, control_socket=control_socket, client_socket=client,
                                                heartbeat_thread=self.heartbeat_thread, logger=self.logger)
                 control_thread.start()
             except socket.error, msg:
@@ -71,18 +77,19 @@ class Server():
         self.logger.debug("Stopping the server")
         if self.heartbeat_thread is not None:
             self.heartbeat_thread.stop_thread()
+        if self.broadcast_thread is not None:
+            self.broadcast_thread.stop_thread()
 
 
 class ControlThread (threading.Thread):
-    def __init__(self, threadID, data, control_socket, client_socket, heartbeat_thread, logger):
+    def __init__(self, data, control_socket, client_socket, heartbeat_thread, logger):
         """
         :type control_socket: Socket
         :type client_socket: Socket
         :type heartbeat_thread: HeartBeatThread
-        :type logger: Logger
+        :type logger: logging.Logger
         """
         threading.Thread.__init__(self)
-        self.threadID = threadID
         self.data = data
         self.control_socket = control_socket
         self.client_socket = client_socket
@@ -140,12 +147,11 @@ class ControlThread (threading.Thread):
 
 
 class HeartBeatThread (threading.Thread):
-    def __init__(self, threadID, logger):
+    def __init__(self, logger):
         """
-        :type logger: Logger
+        :type logger: logging.Logger
         """
         threading.Thread.__init__(self)
-        self.threadID = threadID
         self.quit = False
         self.workstation_ip = None
         self.workstation_port = None
@@ -203,6 +209,79 @@ class HeartBeatThread (threading.Thread):
 
     def stop_thread(self):
         self.logger.debug("Stopping heartbeat thread")
+        self.quit = True
+
+
+class BroadcastThread(threading.Thread):
+    def __init__(self, logger, SIM, commandPort):
+        """
+        :type logger: logging.Logger
+        """
+        threading.Thread.__init__(self)
+        self.SIM = SIM
+        self.logger = logger
+        self.commandPort = commandPort
+        self.streamPort = 5502
+        self.visionWidth = 0.0001
+        self.helloPort = 4849
+        # Drone specific fields
+        if SIM:
+            self.HOST = "127.0.0.1"
+            self.broadcast_address = "127.0.0.1"
+            self.streamFile = "rtp://127.0.0.1:5000"
+        else:
+            self.HOST = "10.1.1.10"
+            self.broadcast_address = "10.1.1.255"
+            self.streamFile = "sololink.sdp"
+        self.quit = False
+
+    def run(self):
+        self.wait_for_control_module()
+        self.broadcast_hello_message()
+        return
+
+    def wait_for_control_module(self):
+        while not os.path.exists('cm_ready'):
+            time.sleep(2)
+        cm_mod_time = os.path.getmtime('cm_ready')
+        curr_time = time.time()
+        while(curr_time - cm_mod_time > 10):
+            time.sleep(2)
+            cm_mod_time = os.path.getmtime('cm_ready')
+            curr_time = time.time()
+
+        self.logger.debug("Control module is now ready")
+
+    def broadcast_hello_message(self):
+        hello = {"message_type": "hello",
+                 "ip_drone": self.HOST,
+                 "port_stream": self.streamPort,
+                 "port_commands": self.commandPort,
+                 "stream_file": self.streamFile,
+                 "vision_width": self.visionWidth}
+        hello_json = json.dumps(hello)
+
+        bcsocket = socket.socket(socket.AF_INET,        # Internet
+                                 socket.SOCK_DGRAM)     # UDP
+        bcsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        bcsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        bcsocket.settimeout(10)
+        bcsocket.bind(('', 0))  # OS will select available port
+        while not self.quit:
+            bcsocket.sendto(hello_json, (self.broadcast_address, self.helloPort))
+            self.logger.debug("Broadcasting hello")
+            try:
+                raw_response, address = bcsocket.recvfrom(1024)
+                response = json.loads(raw_response)
+                if 'message_type' in response:
+                    if response['message_type'] == 'hello':
+                        self.quit = True
+                        self.logger.debug("Reply received, stopping broadcast")
+            except socket.timeout:
+                pass
+
+    def stop_thread(self):
+        self.logger.debug("Stopping broadcast thread")
         self.quit = True
 
 

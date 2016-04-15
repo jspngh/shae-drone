@@ -6,9 +6,7 @@ import struct
 import socket
 import getopt
 import logging
-from logging import Logger
-from threading import RLock
-from dronekit import connect, time
+from dronekit import connect
 
 from solo import Solo
 from navigation_handler import NavigationHandler, NavigationThread
@@ -20,7 +18,7 @@ from global_classes import MessageCodes, WayPointQueue, logformat, dateformat
 class ControlModule():
     def __init__(self, logger, log_level, SIM):
         """
-        :type logger: Logger
+        :type logger: logging.Logger
         :type SIM: bool
         """
         self.logger = logger
@@ -53,7 +51,7 @@ class ControlModule():
             self.unix_socket.bind("/tmp/uds_control")
             self.unix_socket.listen(2)
 
-            self.nav_thread = NavigationThread(1, solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
+            self.nav_thread = NavigationThread(solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
             self.nav_handler = NavigationHandler(self.solo, self.waypoint_queue, self.nav_thread, logging_level=self.log_level)
             self.stat_handler = StatusHandler(self.solo, self.waypoint_queue, logging_level=self.log_level)
             self.setting_handler = SettingsHandler(self.solo, logging_level=self.log_level)
@@ -63,6 +61,8 @@ class ControlModule():
         except socket.error, msg:
             self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
             self.close()
+
+        self.signal_ready()
 
     def sigterm_handler(self, signal, frame):
         self.close()
@@ -134,6 +134,10 @@ class ControlModule():
                 self.nav_thread.stop_thread()
             self.logger.debug("closing vehicle")
             self.vehicle.close()
+
+    def signal_ready(self):
+        with open('cm_ready', 'a'):
+            os.utime('cm_ready', None)
 
 
 def print_help():

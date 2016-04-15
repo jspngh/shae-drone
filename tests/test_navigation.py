@@ -117,36 +117,6 @@ class TestNavigation(unittest.TestCase):
         time.sleep(15)  # wait a bit before going to the next test
         return
 
-    # def test_land(self):
-    #     stop_message = {'message_type': 'navigation', 'message': 'stop'}
-    #     json_stop_message = json.dumps(stop_message)
-    #     emergency_message = {'message_type': 'navigation', 'message': 'emergency'}
-    #     json_em_message = json.dumps(emergency_message)
-    #
-    #     sock = socket.socket(socket.AF_INET,  # Internet
-    #                          socket.SOCK_STREAM)  # TCP
-    #     # Connect to server and send data
-    #     sock.connect(("127.0.0.1", 6330))
-    #     sock.send(struct.pack(">I", len(json_stop_message)))
-    #     sock.send(json_stop_message)
-    #     data = sock.recv(2)
-    #     ack = struct.unpack(">H", data)[0]
-    #     sock.close()
-    #     self.assertEqual(ack, 200)
-    #
-    #     sock = socket.socket(socket.AF_INET,  # Internet
-    #                          socket.SOCK_STREAM)  # TCP
-    #     # Connect to server and send data
-    #     sock.connect(("127.0.0.1", 6330))
-    #     sock.send(struct.pack(">I", len(json_em_message)))
-    #     sock.send(json_em_message)
-    #     data = sock.recv(2)
-    #     ack = struct.unpack(">H", data)[0]
-    #     sock.close()
-    #     self.assertEqual(ack, 200)
-    #
-    #     time.sleep(1)  # wait a bit before going to the next test
-    #     return
 
 if __name__ == '__main__':
     unittest.main()
