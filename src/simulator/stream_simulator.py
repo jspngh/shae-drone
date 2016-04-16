@@ -9,7 +9,6 @@ import logging
 import sys
 
 
-# TODO: listen on port 5502 for connection, then start to stream
 class StreamSimulator(threading.Thread):
     """
     The StreamSimulator executes the following command: cvlc testfootage.mp4 --sout '#rtp{dst=127.0.0.1,port=5000,ptype-video=96,mux=ts}'

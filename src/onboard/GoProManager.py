@@ -3,7 +3,6 @@
 #
 import sys
 import yaml
-import struct
 import logging
 import threading
 from pymavlink import mavutil

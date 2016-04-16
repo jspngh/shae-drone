@@ -8,10 +8,13 @@ from distutils.core import setup
 #    return open(os.path.join(os.path.dirname(__file__), fname)).read()
 
 setup(
-    name="drone_project_shae",
-    version="0.0.1",
-    author="Team Project Shae",
-    description=("Project to configure the drone"),
-    packages=['onboard', 'simulator', 'tests'],
+    name='shae',
+    version='0.1',
+    author='Project Shae',
+    author_email='contact@shae.be',
+    description=('The drone code for Project Shae'),
+    packages=['shae', 'shae.simulator', 'shae.onboard'],
+    package_dir={'shae': 'src', 'shae.simulator': 'src/simulator', 'shae.onboard': 'src/onboard'},
+    package_data={'shae.simulator': ['videos/*.h264', 'videos/*.mp4']}
     # long_description=read('README'),
 )
