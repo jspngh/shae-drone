@@ -227,10 +227,12 @@ class BroadcastThread(threading.Thread):
         # Drone specific fields
         if SIM:
             self.HOST = "127.0.0.1"
+            self.controllerIp = "127.0.0.1"
             self.broadcast_address = "127.0.0.1"
             self.streamFile = "rtp://127.0.0.1:5000"
         else:
             self.HOST = "10.1.1.10"
+            self.controllerIp = "10.1.1.1"
             self.broadcast_address = "10.1.1.255"
             self.streamFile = "sololink.sdp"
         self.quit = False
@@ -255,6 +257,7 @@ class BroadcastThread(threading.Thread):
     def broadcast_hello_message(self):
         hello = {"message_type": "hello",
                  "ip_drone": self.HOST,
+                 "ip_controller": self.controllerIp,
                  "port_stream": self.streamPort,
                  "port_commands": self.commandPort,
                  "stream_file": self.streamFile,
