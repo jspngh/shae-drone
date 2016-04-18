@@ -230,8 +230,9 @@ class BroadcastThread(threading.Thread):
         # Drone specific fields
         if SIM:
             self.HOST = "127.0.0.1"
+            ip = self.get_local_ip()
+            self.broadcast_address = socket.inet_ntoa(socket.inet_aton(ip)[:3] + b'\xff')
             self.controllerIp = "127.0.0.1"
-            self.broadcast_address = "127.0.0.1"
             self.streamFile = "rtp://127.0.0.1:5000"
         else:
             self.HOST = "10.1.1.10"
@@ -277,7 +278,8 @@ class BroadcastThread(threading.Thread):
         bcsocket.bind(('', 0))  # OS will select available port
         while not self.quit:
             bcsocket.sendto(hello_json, (self.broadcast_address, self.helloPort))
-            self.logger.debug("Broadcasting hello")
+            self.logger.debug("Broadcasting hello to " + str(self.broadcast_addres) \
+                    + ":" + self.helloPort)
             try:
                 raw_response, address = bcsocket.recvfrom(1024)
                 response = json.loads(raw_response)
@@ -291,6 +293,14 @@ class BroadcastThread(threading.Thread):
     def stop_thread(self):
         self.logger.debug("Stopping broadcast thread")
         self.quit = True
+
+    def get_local_ip(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8",80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+
 
 
 def print_help():
