@@ -227,6 +227,9 @@ class BroadcastThread(threading.Thread):
         # Drone specific fields
         if SIM:
             self.HOST = "127.0.0.1"
+            ip = gethostbyname(gethostname())
+            self.broadcast_address = inet_ntoa( inet_aton(myip)[:3] + b'\xff' )
+            print 'LAN broadcast', self.broadcast_address
             self.controllerIp = "127.0.0.1"
             self.broadcast_address = "127.0.0.1"
             self.streamFile = "rtp://127.0.0.1:5000"
