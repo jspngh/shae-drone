@@ -230,8 +230,10 @@ class BroadcastThread(threading.Thread):
         # Drone specific fields
         if SIM:
             self.HOST = "127.0.0.1"
-            ip = gethostbyname(gethostname())
-            self.broadcast_address = inet_ntoa( inet_aton(myip)[:3] + b'\xff' )
+            print "hello"
+            ip = self.get_local_ip()
+            print 'LAN broadcast', ip
+            self.broadcast_address = socket.inet_ntoa(socket.inet_aton(ip)[:3] + b'\xff')
             print 'LAN broadcast', self.broadcast_address
             self.controllerIp = "127.0.0.1"
             self.broadcast_address = "127.0.0.1"
@@ -294,6 +296,14 @@ class BroadcastThread(threading.Thread):
     def stop_thread(self):
         self.logger.debug("Stopping broadcast thread")
         self.quit = True
+
+    def get_local_ip(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8",80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
+
 
 
 def print_help():
