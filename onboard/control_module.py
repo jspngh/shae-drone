@@ -33,7 +33,8 @@ class ControlModule():
             self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
 
         # handle signals to exit gracefully
-        signal.signal(signal.SIGTERM, self.sigterm_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_handler)
 
         self.nav_thread = None
         self.nav_handler = None
@@ -64,7 +65,7 @@ class ControlModule():
 
         self.signal_ready()
 
-    def sigterm_handler(self, signal, frame):
+    def signal_handler(self, signal, frame):
         self.close()
         self.logger.debug("exiting the process")
 
@@ -136,8 +137,12 @@ class ControlModule():
             self.vehicle.close()
 
     def signal_ready(self):
-        with open('cm_ready', 'a'):
-            os.utime('cm_ready', None)
+        home_dir = os.path.expanduser('~')
+        if not os.path.exists(os.path.join(home_dir, '.shae')):
+            os.mkdir(os.path.join(home_dir, '.shae'))
+        cm_rdy = os.path.join(home_dir, '.shae', 'cm_ready')
+        with open(cm_rdy, 'a'):
+            os.utime(cm_rdy, None)
 
 
 def print_help():

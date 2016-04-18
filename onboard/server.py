@@ -35,6 +35,8 @@ class Server():
                                           socket.SOCK_STREAM)  # TCP
         self.serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
+        self.heartbeat_thread = None
+        self.broadcast_thread = None
         try:
             self.serversocket.bind((self.HOST, self.PORT))
             self.serversocket.listen(1)  # become a server socket, only 1 connection allowed
@@ -43,12 +45,13 @@ class Server():
             self.broadcast_thread = BroadcastThread(self.logger, self.SIM, self.PORT)
 
             # handle signals to exit gracefully
-            signal.signal(signal.SIGTERM, self.sigterm_handler)
+            signal.signal(signal.SIGTERM, self.signal_handler)
+            signal.signal(signal.SIGINT, self.signal_handler)
         except socket.error, msg:
             self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
             self.close()
 
-    def sigterm_handler(self, signal, frame):
+    def signal_handler(self, signal, frame):
         self.close()
         self.logger.debug("exiting the process")
 
@@ -243,13 +246,15 @@ class BroadcastThread(threading.Thread):
         return
 
     def wait_for_control_module(self):
-        while not os.path.exists('cm_ready'):
+        home_dir = os.path.expanduser('~')
+        cm_rdy = os.path.join(home_dir, '.shae', 'cm_ready')
+        while not os.path.exists(cm_rdy):
             time.sleep(2)
-        cm_mod_time = os.path.getmtime('cm_ready')
+        cm_mod_time = os.path.getmtime(cm_rdy)
         curr_time = time.time()
         while(curr_time - cm_mod_time > 10):
             time.sleep(2)
-            cm_mod_time = os.path.getmtime('cm_ready')
+            cm_mod_time = os.path.getmtime(cm_rdy)
             curr_time = time.time()
 
         self.logger.debug("Control module is now ready")
