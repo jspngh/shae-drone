@@ -237,6 +237,12 @@ class Solo:
         loc = Location(longitude=veh_loc.lon, latitude=veh_loc.lat)
         return loc
 
+    def get_gps_signal_strength(self):
+        ss = self.vehicle.gps_0.satellites_visible
+        if ss is None:
+            ss = -1
+        return ss
+
     def get_speed(self):
         return self.vehicle.airspeed
 

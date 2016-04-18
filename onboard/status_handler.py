@@ -44,6 +44,7 @@ class StatusHandler():
                 else:
                     wp_order = curr_wayp.order
                 battery = self.solo.get_battery_level()
+                gps_signal_strength = self.solo.get_gps_signal_strength()
                 loc = self.solo.get_location()
                 orientation = self.solo.get_orientation()
                 drone_type = self.solo.get_drone_type()
@@ -57,6 +58,7 @@ class StatusHandler():
                 data = {'current_location': loc,
                         'waypoint_order': wp_order,
                         'battery_level': battery,
+                        'gps_signal': gps_signal_strength,
                         'orientation': orientation,
                         'speed': speed,
                         'selected_speed': target_speed,
@@ -74,9 +76,14 @@ class StatusHandler():
                 else:
                     wp_order = curr_wayp.order
                 battery = self.solo.get_battery_level()
+                gps_signal_strength = self.solo.get_gps_signal_strength()
                 loc = self.solo.get_location()
                 orientation = self.solo.get_orientation()
-                data = {'current_location': loc, 'waypoint_order': wp_order, 'orientation': orientation, 'battery_level': battery}
+                data = {'current_location': loc,
+                        'waypoint_order': wp_order,
+                        'orientation': orientation,
+                        'battery_level': battery,
+                        'gps_signal': gps_signal_strength}
 
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=True)
 
@@ -88,6 +95,11 @@ class StatusHandler():
                     if (status_request['key'] == "battery_level"):
                         battery = self.solo.get_battery_level()
                         data = {'battery_level': battery}
+                        return self.create_packet(data)
+
+                    if (status_request['key'] == "gps_signal"):
+                        gps_signal_strength = self.solo.get_gps_signal_strength()
+                        data = {'gps_signal': gps_signal_strength}
                         return self.create_packet(data)
 
                     elif (status_request['key'] == "current_location"):
