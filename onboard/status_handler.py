@@ -37,12 +37,12 @@ class StatusHandler():
         try:
             if (self.message == "all_statuses"):  # TODO: all status attributes are requested
                 self.waypoint_queue.queue_lock.acquire()
-                curr_wayp = self.waypoint_queue.current_waypoint
+                last_wayp = self.waypoint_queue.current_waypoint
                 self.waypoint_queue.queue_lock.release()
-                if curr_wayp is None:
+                if last_wayp is None:
                     wp_order = -1
                 else:
-                    wp_order = curr_wayp.order
+                    wp_order = last_wayp.order
                 battery = self.solo.get_battery_level()
                 loc = self.solo.get_location()
                 orientation = self.solo.get_orientation()
@@ -67,12 +67,12 @@ class StatusHandler():
 
             elif (self.message == "heartbeat"):  # a heartbeat was requested
                 self.waypoint_queue.queue_lock.acquire()
-                curr_wayp = self.waypoint_queue.current_waypoint
+                last_wayp = self.waypoint_queue.current_waypoint
                 self.waypoint_queue.queue_lock.release()
-                if curr_wayp is None:
+                if last_wayp is None:
                     wp_order = -1
                 else:
-                    wp_order = curr_wayp.order
+                    wp_order = last_wayp.order
                 battery = self.solo.get_battery_level()
                 loc = self.solo.get_location()
                 orientation = self.solo.get_orientation()

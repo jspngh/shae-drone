@@ -34,8 +34,8 @@ class Server():
         self.serversocket = socket.socket(socket.AF_INET,      # Internet
                                           socket.SOCK_STREAM)  # TCP
         self.serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
-        
-	# handle signals to exit gracefully
+
+        # handle signals to exit gracefully
         signal.signal(signal.SIGTERM, self.signal_handler)
         signal.signal(signal.SIGINT, self.signal_handler)
 
@@ -85,10 +85,11 @@ class Server():
 
     def get_local_ip(self):
         s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8",80))
+        s.connect(("8.8.8.8", 80))
         ip = s.getsockname()[0]
         s.close()
         return ip
+
 
 class ControlThread (threading.Thread):
     def __init__(self, data, control_socket, client_socket, heartbeat_thread, logger):
@@ -233,7 +234,7 @@ class BroadcastThread(threading.Thread):
         self.streamPort = 5502
         self.visionWidth = 0.0001
         self.helloPort = 4849
-	self.HOST = drone_ip
+        self.HOST = drone_ip
 
         # Drone specific fields
         if SIM:
@@ -283,8 +284,7 @@ class BroadcastThread(threading.Thread):
         bcsocket.bind(('', 0))  # OS will select available port
         while not self.quit:
             bcsocket.sendto(hello_json, (self.broadcast_address, self.helloPort))
-            self.logger.debug("Broadcasting hello to " + str(self.broadcast_address) \
-                    + ":" + str(self.helloPort))
+            self.logger.debug("Broadcasting hello to " + str(self.broadcast_address) + ":" + str(self.helloPort))
             try:
                 raw_response, address = bcsocket.recvfrom(1024)
                 response = json.loads(raw_response)
