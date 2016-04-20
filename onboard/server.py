@@ -24,7 +24,7 @@ class Server():
 
         # Drone specific fields
         if SIM:
-            self.HOST = "127.0.0.1"
+            self.HOST = self.get_local_ip()
         else:
             self.HOST = "10.1.1.10"
 
@@ -35,6 +35,10 @@ class Server():
                                           socket.SOCK_STREAM)  # TCP
         self.serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
+        # handle signals to exit gracefully
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_handler)
+
         self.heartbeat_thread = None
         self.broadcast_thread = None
         try:
@@ -42,11 +46,7 @@ class Server():
             self.serversocket.listen(1)  # become a server socket, only 1 connection allowed
 
             self.heartbeat_thread = HeartBeatThread(self.logger)
-            self.broadcast_thread = BroadcastThread(self.logger, self.SIM, self.PORT)
-
-            # handle signals to exit gracefully
-            signal.signal(signal.SIGTERM, self.signal_handler)
-            signal.signal(signal.SIGINT, self.signal_handler)
+            self.broadcast_thread = BroadcastThread(self.logger, self.HOST, self.SIM, self.PORT)
         except socket.error, msg:
             self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
             self.close()
@@ -82,6 +82,13 @@ class Server():
             self.heartbeat_thread.stop_thread()
         if self.broadcast_thread is not None:
             self.broadcast_thread.stop_thread()
+
+    def get_local_ip(self):
+        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
+        s.connect(("8.8.8.8", 80))
+        ip = s.getsockname()[0]
+        s.close()
+        return ip
 
 
 class ControlThread (threading.Thread):
@@ -216,7 +223,7 @@ class HeartBeatThread (threading.Thread):
 
 
 class BroadcastThread(threading.Thread):
-    def __init__(self, logger, SIM, commandPort):
+    def __init__(self, logger, drone_ip, SIM, commandPort):
         """
         :type logger: logging.Logger
         """
@@ -227,15 +234,14 @@ class BroadcastThread(threading.Thread):
         self.streamPort = 5502
         self.visionWidth = 0.0001
         self.helloPort = 4849
+        self.HOST = drone_ip
+
         # Drone specific fields
         if SIM:
-            self.HOST = "127.0.0.1"
-            ip = self.get_local_ip()
-            self.broadcast_address = socket.inet_ntoa(socket.inet_aton(ip)[:3] + b'\xff')
-            self.controllerIp = "127.0.0.1"
+            self.broadcast_address = socket.inet_ntoa(socket.inet_aton(self.HOST)[:3] + b'\xff')
+            self.controllerIp = self.HOST
             self.streamFile = "rtp://127.0.0.1:5000"
         else:
-            self.HOST = "10.1.1.10"
             self.controllerIp = "10.1.1.1"
             self.broadcast_address = "10.1.1.255"
             self.streamFile = "sololink.sdp"
@@ -278,8 +284,7 @@ class BroadcastThread(threading.Thread):
         bcsocket.bind(('', 0))  # OS will select available port
         while not self.quit:
             bcsocket.sendto(hello_json, (self.broadcast_address, self.helloPort))
-            self.logger.debug("Broadcasting hello to " + str(self.broadcast_addres) \
-                    + ":" + self.helloPort)
+            self.logger.debug("Broadcasting hello to " + str(self.broadcast_address) + ":" + str(self.helloPort))
             try:
                 raw_response, address = bcsocket.recvfrom(1024)
                 response = json.loads(raw_response)
@@ -293,14 +298,6 @@ class BroadcastThread(threading.Thread):
     def stop_thread(self):
         self.logger.debug("Stopping broadcast thread")
         self.quit = True
-
-    def get_local_ip(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8",80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
-
 
 
 def print_help():
