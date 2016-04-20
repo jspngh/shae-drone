@@ -24,7 +24,7 @@ class Server():
 
         # Drone specific fields
         if SIM:
-            self.HOST = self.get_local_ip()
+            self.HOST = "127.0.0.1"
         else:
             self.HOST = "10.1.1.10"
 
@@ -83,12 +83,6 @@ class Server():
         if self.broadcast_thread is not None:
             self.broadcast_thread.stop_thread()
 
-    def get_local_ip(self):
-        s = socket.socket(socket.AF_INET, socket.SOCK_DGRAM)
-        s.connect(("8.8.8.8", 80))
-        ip = s.getsockname()[0]
-        s.close()
-        return ip
 
 
 class ControlThread (threading.Thread):
@@ -238,7 +232,7 @@ class BroadcastThread(threading.Thread):
 
         # Drone specific fields
         if SIM:
-            self.broadcast_address = socket.inet_ntoa(socket.inet_aton(self.HOST)[:3] + b'\xff')
+            self.broadcast_address = self.HOST
             self.controllerIp = self.HOST
             self.streamFile = "rtp://127.0.0.1:5000"
         else:
