@@ -37,12 +37,8 @@ class StatusHandler():
         try:
             if (self.message == "all_statuses"):  # TODO: all status attributes are requested
                 self.waypoint_queue.queue_lock.acquire()
-                last_wayp = self.waypoint_queue.current_waypoint
+                last_wayp_ord = self.waypoint_queue.last_waypoint_order
                 self.waypoint_queue.queue_lock.release()
-                if last_wayp is None:
-                    wp_order = -1
-                else:
-                    wp_order = last_wayp.order
                 battery = self.solo.get_battery_level()
                 loc = self.solo.get_location()
                 orientation = self.solo.get_orientation()
@@ -55,7 +51,7 @@ class StatusHandler():
                 drone_type.__dict__
 
                 data = {'current_location': loc,
-                        'waypoint_order': wp_order,
+                        'waypoint_order': last_wayp_ord,
                         'battery_level': battery,
                         'orientation': orientation,
                         'speed': speed,
@@ -67,16 +63,12 @@ class StatusHandler():
 
             elif (self.message == "heartbeat"):  # a heartbeat was requested
                 self.waypoint_queue.queue_lock.acquire()
-                last_wayp = self.waypoint_queue.current_waypoint
+                last_wayp_ord = self.waypoint_queue.last_waypoint_order
                 self.waypoint_queue.queue_lock.release()
-                if last_wayp is None:
-                    wp_order = -1
-                else:
-                    wp_order = last_wayp.order
                 battery = self.solo.get_battery_level()
                 loc = self.solo.get_location()
                 orientation = self.solo.get_orientation()
-                data = {'current_location': loc, 'waypoint_order': wp_order, 'orientation': orientation, 'battery_level': battery}
+                data = {'current_location': loc, 'waypoint_order': last_wayp_ord, 'orientation': orientation, 'battery_level': battery}
 
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=True)
 

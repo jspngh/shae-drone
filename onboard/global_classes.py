@@ -62,7 +62,7 @@ class WayPointQueue():
         self.queue_lock = RLock()  # this lock will be used when accessing the waypoint queue
         self.queue = []
         self.current_waypoint = None
-        self.last_waypoint = None
+        self.last_waypoint_order = -1
         self.home = None
 
     def insert_waypoint(self, waypoint, side='back'):
@@ -87,7 +87,7 @@ class WayPointQueue():
         else:
             waypoint = self.queue[0]
             self.queue = self.queue[1:]
-        self.last_waypoint = self.current_waypoint
+        self.last_waypoint_order = self.current_waypoint.order
         self.current_waypoint = waypoint
         self.queue_lock.release()
         return waypoint
@@ -116,6 +116,8 @@ class WayPointQueue():
     def is_empty(self):
         self.queue_lock.acquire()
         result = not self.queue
+        if result is False and self.last_waypoint_order != -1:
+            self.last_waypoint_order = -2
         self.queue_lock.release()
         return result
 

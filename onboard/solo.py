@@ -10,7 +10,7 @@ from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logfo
 
 
 class Solo:
-    def __init__(self, vehicle, height=6, speed=5, update_rate=15, logging_level=logging.CRITICAL):
+    def __init__(self, vehicle, height=4, speed=5, update_rate=15, logging_level=logging.CRITICAL):
         """
         :type vehicle: Vehicle
         """
