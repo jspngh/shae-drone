@@ -12,7 +12,7 @@ class Simulator:
         # SITL is the system in the loop simulator from dronekit
         self.sitl = SITL()
         self.sitl.download('solo', '1.2.0', verbose=True)
-        sitl_args = ['solo', '--home=51.011444,3.711916,5,0']
+        sitl_args = ['solo', '--home=51.011447,3.711648,5,0']
         self.sitl.launch(sitl_args, await_ready=True, restart=True)
 
         # This simulator can be invoked from the /simulator directory and the /tests directory
