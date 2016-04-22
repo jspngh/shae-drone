@@ -67,6 +67,7 @@ class StatusHandler():
 
             elif (self.message == "heartbeat"):  # a heartbeat was requested
                 self.waypoint_queue.queue_lock.acquire()
+                height = self.solo.get_height()
                 last_wayp = self.waypoint_queue.current_waypoint
                 self.waypoint_queue.queue_lock.release()
                 if last_wayp is None:
@@ -76,7 +77,9 @@ class StatusHandler():
                 battery = self.solo.get_battery_level()
                 loc = self.solo.get_location()
                 orientation = self.solo.get_orientation()
-                data = {'current_location': loc, 'waypoint_order': wp_order, 'orientation': orientation, 'battery_level': battery}
+                data = {'current_location': loc, 'waypoint_order': wp_order,
+                        'orientation': orientation, 'battery_level': battery,
+                        'height': height}
 
                 return self.create_packet(data, cls=LocationEncoder, heartbeat=True)
 
