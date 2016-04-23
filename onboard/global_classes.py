@@ -87,7 +87,8 @@ class WayPointQueue():
         else:
             waypoint = self.queue[0]
             self.queue = self.queue[1:]
-        self.last_waypoint_order = self.current_waypoint.order
+        if self.current_waypoint is not None:
+            self.last_waypoint_order = self.current_waypoint.order
         self.current_waypoint = waypoint
         self.queue_lock.release()
         return waypoint
