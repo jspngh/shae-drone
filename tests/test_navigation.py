@@ -11,7 +11,7 @@ from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue
 from simulator import Simulator
 
 
-class TestOnboard(unittest.TestCase):
+class TestNavigation(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
         cls.sim = Simulator()
@@ -21,14 +21,7 @@ class TestOnboard(unittest.TestCase):
     def tearDownClass(cls):
         cls.sim.stop()
 
-    def test_one(self):
-        self.assertEqual('foo'.upper(), 'FOO')
-
-    def test_two(self):
-        self.assertTrue('FOO'.isupper())
-        self.assertFalse('Foo'.isupper())
-
-    def test_waypoint_queue(self):
+    def test_1_waypoint_queue(self):
         random_list = [4, 3, 6, 1, 5, 2, 3]
         sorted_list = [1, 2, 3, 3, 4, 5, 6]
         wpq = WayPointQueue()
@@ -39,29 +32,7 @@ class TestOnboard(unittest.TestCase):
         for i, wp in enumerate(wpq.queue):
             self.assertEqual(wp.order, sorted_list[i])
 
-    def test_dronetype_message(self):
-        dronetype_message = {'message_type': 'status', 'message': [{'key': 'drone_type'}]}
-        json_dt_message = json.dumps(dronetype_message)
-
-        sock = socket.socket(socket.AF_INET,  # Internet
-                             socket.SOCK_STREAM)  # TCP
-        # Connect to server and send data
-        sock.connect(("127.0.0.1", 6330))
-        sock.send(struct.pack(">I", len(json_dt_message)))
-        sock.send(json_dt_message)
-        data = sock.recv(2)
-        ack = struct.unpack(">H", data)[0]
-        data = sock.recv(2)
-        length = struct.unpack(">H", data)[0]
-        sock.recv(length)
-        sock.close()
-        self.assertEqual(ack, 300)
-        self.assertNotEqual(length, 0)
-        time.sleep(1)  # wait a bit before going to the next test
-
-        return
-
-    def test_lift_off(self):
+    def test_2_lift_off(self):
         start_message = {'message_type': 'navigation', 'message': 'start'}
         json_start_message = json.dumps(start_message)
 
@@ -79,7 +50,7 @@ class TestOnboard(unittest.TestCase):
 
         return
 
-    def test_path_message(self):
+    def test_3_path_message(self):
         waypoints = []
         # for i in range(0, 4):
         tmp_loc_1 = Location(latitude=51.022721, longitude=3.709819)
@@ -102,39 +73,50 @@ class TestOnboard(unittest.TestCase):
         sock.close()
         self.assertEqual(ack, 200)
 
-        time.sleep(1)  # wait a bit before going to the next test
+        time.sleep(15)  # wait a bit before going to the next test
         return
 
-    def test_land(self):
-        stop_message = {'message_type': 'navigation', 'message': 'stop'}
-        json_stop_message = json.dumps(stop_message)
-        emergency_message = {'message_type': 'navigation', 'message': 'emergency'}
-        json_em_message = json.dumps(emergency_message)
+    def test_4_heartbeat_message(self):
+        battery_message = {'message_type': 'status', 'message': 'heartbeat'}
+        json_dt_message = json.dumps(battery_message)
 
         sock = socket.socket(socket.AF_INET,  # Internet
                              socket.SOCK_STREAM)  # TCP
         # Connect to server and send data
         sock.connect(("127.0.0.1", 6330))
-        sock.send(struct.pack(">I", len(json_stop_message)))
-        sock.send(json_stop_message)
+        sock.send(struct.pack(">I", len(json_dt_message)))
+        sock.send(json_dt_message)
         data = sock.recv(2)
         ack = struct.unpack(">H", data)[0]
+        data = sock.recv(2)
+        length = struct.unpack(">H", data)[0]
+        response = sock.recv(length)
+        print response
         sock.close()
-        self.assertEqual(ack, 200)
+        self.assertEqual(ack, 300)
+        self.assertNotEqual(length, 0)
+        time.sleep(1)  # wait a bit before going to the next test
+
+        return
+
+    def test_5_rth_message(self):
+        rth_message = {'message_type': 'navigation', 'message': 'rth'}
+        json_rth_message = json.dumps(rth_message)
 
         sock = socket.socket(socket.AF_INET,  # Internet
                              socket.SOCK_STREAM)  # TCP
         # Connect to server and send data
         sock.connect(("127.0.0.1", 6330))
-        sock.send(struct.pack(">I", len(json_em_message)))
-        sock.send(json_em_message)
+        sock.send(struct.pack(">I", len(json_rth_message)))
+        sock.send(json_rth_message)
         data = sock.recv(2)
         ack = struct.unpack(">H", data)[0]
         sock.close()
         self.assertEqual(ack, 200)
 
-        time.sleep(1)  # wait a bit before going to the next test
+        time.sleep(15)  # wait a bit before going to the next test
         return
+
 
 if __name__ == '__main__':
     unittest.main()

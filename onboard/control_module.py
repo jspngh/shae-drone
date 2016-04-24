@@ -6,12 +6,10 @@ import struct
 import socket
 import getopt
 import logging
-from logging import Logger
-from threading import RLock
-from dronekit import connect, time
+from dronekit import connect
 
 from solo import Solo
-from navigation_handler import NavigationHandler
+from navigation_handler import NavigationHandler, NavigationThread
 from settings_handler import SettingsHandler
 from status_handler import StatusHandler
 from global_classes import MessageCodes, WayPointQueue, logformat, dateformat
@@ -20,7 +18,7 @@ from global_classes import MessageCodes, WayPointQueue, logformat, dateformat
 class ControlModule():
     def __init__(self, logger, log_level, SIM):
         """
-        :type logger: Logger
+        :type logger: logging.Logger
         :type SIM: bool
         """
         self.logger = logger
@@ -35,7 +33,13 @@ class ControlModule():
             self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
 
         # handle signals to exit gracefully
-        signal.signal(signal.SIGINT, self.sigint_handler)
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+        self.nav_thread = None
+        self.nav_handler = None
+        self.stat_handler = None
+        self.setting_handler = None
 
         self.waypoint_queue = WayPointQueue()  # in this queue, the waypoints the drone has to visit will come
         self.unix_socket = socket.socket(socket.AF_UNIX,      # Unix Domain Socket
@@ -48,14 +52,20 @@ class ControlModule():
             self.unix_socket.bind("/tmp/uds_control")
             self.unix_socket.listen(2)
 
-            self.nav_thread = NavigationHandler.NavigationThread(1, solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
+            self.nav_thread = NavigationThread(solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
+            self.nav_handler = NavigationHandler(self.solo, self.waypoint_queue, self.nav_thread, logging_level=self.log_level)
+            self.stat_handler = StatusHandler(self.solo, self.waypoint_queue, logging_level=self.log_level)
+            self.setting_handler = SettingsHandler(self.solo, logging_level=self.log_level)
+
             self.logger.debug("Starting Navigation Thread")
             self.nav_thread.start()
         except socket.error, msg:
             self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
             self.close()
 
-    def sigint_handler(self, signal, frame):
+        self.signal_ready()
+
+    def signal_handler(self, signal, frame):
         self.close()
         self.logger.debug("exiting the process")
 
@@ -81,13 +91,11 @@ class ControlModule():
                 message = packet['message']           # the 'message' attribute tells what packet it is, within it's class
                 if (message_type == "navigation"):
                     self.logger.info("received a navigation request")
-                    nav_handler = NavigationHandler(packet, message, self.solo, self.waypoint_queue, logging_level=self.log_level)
-                    nav_handler.handle_packet()
+                    self.nav_handler.handle_packet(packet, message)
                     client.send(struct.pack(">I", MessageCodes.ACK))
                 elif (message_type == "status"):
                     self.logger.info("received a status request")
-                    stat_handler = StatusHandler(packet, message, self.solo, self.waypoint_queue, logging_level=self.log_level)
-                    response = stat_handler.handle_packet()
+                    response = self.stat_handler.handle_packet(packet, message)
                     if response is None:
                         client.send(struct.pack(">I", MessageCodes.ERR))  # something went wrong
                     else:
@@ -96,8 +104,7 @@ class ControlModule():
                         client.send(response)
                 elif (message_type == "settings"):
                     self.logger.info("received a settings request")
-                    sett_handler = SettingsHandler(packet, message, self.solo, logging_level=self.log_level)
-                    response = sett_handler.handle_packet()
+                    response = self.setting_handler.handle_packet(packet, message)
                     # if we got a response, that means we need to start sending heartbeats
                     if response is not None and isinstance(response, tuple):
                         self.logger.info("Settings heartbeat configuration")
@@ -124,9 +131,18 @@ class ControlModule():
     def close(self):
         if not self.quit:
             self.quit = True
-            self.nav_thread.stop_thread()
+            if self.nav_thread is not None:
+                self.nav_thread.stop_thread()
             self.logger.debug("closing vehicle")
             self.vehicle.close()
+
+    def signal_ready(self):
+        home_dir = os.path.expanduser('~')
+        if not os.path.exists(os.path.join(home_dir, '.shae')):
+            os.mkdir(os.path.join(home_dir, '.shae'))
+        cm_rdy = os.path.join(home_dir, '.shae', 'cm_ready')
+        with open(cm_rdy, 'a'):
+            os.utime(cm_rdy, None)
 
 
 def print_help():

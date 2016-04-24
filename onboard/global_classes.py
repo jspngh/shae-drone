@@ -23,7 +23,7 @@ class DroneTypeEncoder(JSONEncoder):
     def default(self, drone):
         if isinstance(drone, DroneType):
             dt = {'manufacturer': drone.manufacturer, 'model': drone.model}
-            return {'drone_type': dt}
+            return dt
 
 
 class Location():
@@ -62,6 +62,7 @@ class WayPointQueue():
         self.queue_lock = RLock()  # this lock will be used when accessing the waypoint queue
         self.queue = []
         self.current_waypoint = None
+        self.last_waypoint_order = -1
         self.home = None
 
     def insert_waypoint(self, waypoint, side='back'):
@@ -86,6 +87,8 @@ class WayPointQueue():
         else:
             waypoint = self.queue[0]
             self.queue = self.queue[1:]
+        if self.current_waypoint is not None:
+            self.last_waypoint_order = self.current_waypoint.order
         self.current_waypoint = waypoint
         self.queue_lock.release()
         return waypoint
@@ -114,6 +117,8 @@ class WayPointQueue():
     def is_empty(self):
         self.queue_lock.acquire()
         result = not self.queue
+        if result is False and self.last_waypoint_order != -1:
+            self.last_waypoint_order = -2
         self.queue_lock.release()
         return result
 
