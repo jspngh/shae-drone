@@ -9,7 +9,7 @@ from distutils.core import setup
 
 setup(
     name='shae',
-    version='0.1',
+    version='0.9',
     author='Project Shae',
     author_email='contact@shae.be',
     description=('The drone code for Project Shae'),

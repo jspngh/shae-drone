@@ -2,9 +2,41 @@ import os
 import sys
 import time
 import signal
+import logging
+import threading
 from subprocess import Popen
+
 from dronekit_sitl import SITL
 from stream_simulator import StreamSimulator
+from shae.onboard.server import Server
+from shae.onboard.control_module import ControlModule
+from shae.onboard.global_classes import logformat, dateformat
+
+
+class ServerSimulator(threading.Thread):
+    def __init__(self, logger):
+        threading.Thread.__init__(self)
+        self.server = Server(logger=logger, SIM=True)
+
+    def run(self):
+        self.server.run()
+
+    def stop_thread(self):
+        self.server.close()
+        print 'closed server'
+
+
+class ControlModuleSimulator(threading.Thread):
+    def __init__(self, logger, log_lvl):
+        threading.Thread.__init__(self)
+        self.control_module = ControlModule(logger=logger, log_level=log_lvl, SIM=True)
+
+    def run(self):
+        self.control_module.run()
+
+    def stop_thread(self):
+        self.control_module.close()
+        print 'closed controle module'
 
 
 class Simulator:
@@ -15,49 +47,74 @@ class Simulator:
         sitl_args = ['solo', '--home=51.011447,3.711648,5,0']
         self.sitl.launch(sitl_args, await_ready=True, restart=True)
 
-        # This simulator can be invoked from the /simulator directory and the /tests directory
-        # Hardcoding relative paths should be avoided
-        current_dir = os.path.abspath(os.curdir)
-        parent_dir = os.path.dirname(current_dir)
-        drone_dir = os.path.join(parent_dir, "drone")
-        simulator_dir = os.path.join(parent_dir, "simulator")
-        onboard_dir = os.path.join(parent_dir, "onboard")
-        # Search for the drone directory containing the /simulator and /onboard directories
-        # Or stop if we find the /simulator and /onboard directories
-        while not (os.path.exists(drone_dir) or (os.path.exists(simulator_dir) and os.path.exists(onboard_dir))):
-            current_dir = parent_dir
-            parent_dir = os.path.dirname(current_dir)
-            if parent_dir == current_dir:
-                print "Could not find files"
-                sys.exit(1)  # we did not find one of the necessary files
-            drone_dir = os.path.join(parent_dir, "drone")
-            simulator_dir = os.path.join(parent_dir, "simulator")
-            onboard_dir = os.path.join(parent_dir, "onboard")
+        #############################################################################################################
+        # This is old code from when the onboard and simulator code were no modules yet
+        # It is used to find the correct directories and start the correct processes, and might prove useful in the future
 
-        if os.path.exists(drone_dir):
-            # we found the drone directory
-            simulator_dir = os.path.join(drone_dir, "simulator")
-            onboard_dir = os.path.join(drone_dir, "onboard")
+        # # This simulator can be invoked from the /simulator directory and the /tests directory
+        # # Hardcoding relative paths should be avoided
+        # current_dir = os.path.abspath(os.curdir)
+        # parent_dir = os.path.dirname(current_dir)
+        # drone_dir = os.path.join(parent_dir, "drone")
+        # simulator_dir = os.path.join(parent_dir, "simulator")
+        # onboard_dir = os.path.join(parent_dir, "onboard")
+        # # Search for the drone directory containing the /simulator and /onboard directories
+        # # Or stop if we find the /simulator and /onboard directories
+        # while not (os.path.exists(drone_dir) or (os.path.exists(simulator_dir) and os.path.exists(onboard_dir))):
+        #     current_dir = parent_dir
+        #     parent_dir = os.path.dirname(current_dir)
+        #     if parent_dir == current_dir:
+        #         print "Could not find files"
+        #         sys.exit(1)  # we did not find one of the necessary files
+        #     drone_dir = os.path.join(parent_dir, "drone")
+        #     simulator_dir = os.path.join(parent_dir, "simulator")
+        #     onboard_dir = os.path.join(parent_dir, "onboard")
+        # if os.path.exists(drone_dir):
+        #     # we found the drone directory
+        #     simulator_dir = os.path.join(drone_dir, "simulator")
+        #     onboard_dir = os.path.join(drone_dir, "onboard")
+        # video_dir = os.path.join(simulator_dir, "videos")
+        # video_footage = os.path.join(video_dir, "testfootage.h264")
+        # server = os.path.join(onboard_dir, "server.py")
+        # control_module = os.path.join(onboard_dir, "control_module.py")
+        # if not (os.path.exists(simulator_dir) and
+        #         os.path.exists(onboard_dir) and
+        #         os.path.exists(video_footage) and
+        #         os.path.exists(server) and
+        #         os.path.exists(control_module)):
+        #     print "Could not find files"
+        #     sys.exit(1)  # we did not find one of the necessary files
 
-        video_dir = os.path.join(simulator_dir, "videos")
-        video_footage = os.path.join(video_dir, "testfootage.h264")
-        server = os.path.join(onboard_dir, "server.py")
-        control_module = os.path.join(onboard_dir, "control_module.py")
-        if not (os.path.exists(simulator_dir) and
-                os.path.exists(onboard_dir) and
-                os.path.exists(video_footage) and
-                os.path.exists(server) and
-                os.path.exists(control_module)):
-            print "Could not find files"
-            sys.exit(1)  # we did not find one of the necessary files
+        # The server and control modules were started as seperate processes
+        # This gave issues when trying to measure the code coverage, hence we changed it to threads
 
+        # env_vars = os.environ.copy()
+        # env_vars["COVERAGE_PROCESS_START"] = ".coveragerc"
+        # self.server_process = Popen(['python2', server, '--level', 'debug', '--simulate'], env=env_vars)
+        # self.control_process = Popen(['python2', control_module, '--level', 'debug', '--simulate'], env=env_vars)
+        #############################################################################################################
+
+        # Now that we have modules, we can just do this
+        current_dir = os.path.dirname(os.path.realpath(__file__))  # this is the directory of the file
+        video_footage = os.path.join(current_dir, 'videos', 'testfootage.h264')
         self.stream_simulator = StreamSimulator(video_footage)
         self.stream_simulator.start()
 
-        env_vars = os.environ.copy()
-        env_vars["COVERAGE_PROCESS_START"] = ".coveragerc"
-        self.server_process = Popen(['python2', server, '--level', 'debug', '--simulate'], env=env_vars)
-        self.control_process = Popen(['python2', control_module, '--level', 'debug', '--simulate'], env=env_vars)
+        log_level = logging.DEBUG
+        simulation_logger = logging.getLogger("Simulator")
+        formatter = logging.Formatter(logformat, datefmt=dateformat)
+        handler = logging.StreamHandler(stream=sys.stdout)
+        # To log to a file, this could be used
+        # handler = logging.FileHandler(filename=log_file)
+        handler.setFormatter(formatter)
+        handler.setLevel(log_level)
+        simulation_logger.addHandler(handler)
+        simulation_logger.setLevel(log_level)
+
+        self.server_thread = ServerSimulator(logger=simulation_logger)
+        self.control_thread = ControlModuleSimulator(logger=simulation_logger, log_lvl=log_level)
+        self.server_thread.start()
+        self.control_thread.start()
 
         # capture kill signals to send it to the subprocesses
         signal.signal(signal.SIGINT, self.signal_handler)
@@ -69,12 +126,10 @@ class Simulator:
         sys.exit(0)
 
     def stop(self):
-        self.server_process.send_signal(sig=signal.SIGTERM)
-        self.control_process.send_signal(sig=signal.SIGTERM)
-        self.server_process.wait()
-        self.control_process.wait()
         self.stream_simulator.stop_thread()
-        time.sleep(0.5)
+        self.server_thread.stop_thread()
+        self.control_thread.stop_thread()
+        time.sleep(5.0)
         self.sitl.stop()
 
 

@@ -51,6 +51,7 @@ class ControlModule():
         try:
             self.unix_socket.bind("/tmp/uds_control")
             self.unix_socket.listen(2)
+            self.unix_socket.settimeout(2.0)
 
             self.nav_thread = NavigationThread(solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
             self.nav_handler = NavigationHandler(self.solo, self.waypoint_queue, self.nav_thread, logging_level=self.log_level)
@@ -120,8 +121,7 @@ class ControlModule():
                     raise ValueError
 
             except socket.error, msg:
-                self.logger.debug("Error in control module: {0}, quitting".format(msg))
-                self.close()
+                pass
 
             except ValueError, msg:
                 # TODO: handle error

@@ -44,6 +44,7 @@ class Server():
         try:
             self.serversocket.bind((self.HOST, self.PORT))
             self.serversocket.listen(1)  # become a server socket, only 1 connection allowed
+            self.serversocket.settimeout(2.0)
 
             self.heartbeat_thread = HeartBeatThread(self.logger)
             self.broadcast_thread = BroadcastThread(self.logger, self.HOST, self.SIM, self.PORT)
@@ -71,9 +72,8 @@ class Server():
                 control_thread = ControlThread(raw, control_socket=control_socket, client_socket=client,
                                                heartbeat_thread=self.heartbeat_thread, logger=self.logger)
                 control_thread.start()
-            except socket.error, msg:
-                self.logger.debug("Error in server: {0}, quitting".format(msg))
-                self.close()
+            except socket.error:
+                pass
 
     def close(self):
         self.quit = True
@@ -82,7 +82,6 @@ class Server():
             self.heartbeat_thread.stop_thread()
         if self.broadcast_thread is not None:
             self.broadcast_thread.stop_thread()
-
 
 
 class ControlThread (threading.Thread):
