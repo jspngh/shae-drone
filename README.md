@@ -1,5 +1,7 @@
 # Drone
 
+To install the code as modules run `python2 setup.py install --prefix=/usr/local`
+
 ## Simulator
 
 ### Onboard + vehicle (drone)

@@ -33,9 +33,10 @@ class StreamSimulator(threading.Thread):
         self.videosocket = socket.socket(socket.AF_INET,      # Internet
                                          socket.SOCK_STREAM)  # TCP
         self.videosocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        self.ip = "127.0.0.1"
 
         try:
-            self.videosocket.bind(("127.0.0.1", 5502))
+            self.videosocket.bind((self.ip, 5502))
             self.videosocket.settimeout(2.5)
             self.videosocket.listen(1)
             self.quit = False

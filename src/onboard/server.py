@@ -35,20 +35,23 @@ class Server():
                                           socket.SOCK_STREAM)  # TCP
         self.serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
+        # handle signals to exit gracefully
+        signal.signal(signal.SIGTERM, self.signal_handler)
+        signal.signal(signal.SIGINT, self.signal_handler)
+
+        self.heartbeat_thread = None
+        self.broadcast_thread = None
         try:
             self.serversocket.bind((self.HOST, self.PORT))
             self.serversocket.listen(1)  # become a server socket, only 1 connection allowed
 
             self.heartbeat_thread = HeartBeatThread(self.logger)
-            self.broadcast_thread = BroadcastThread(self.logger, self.SIM, self.PORT)
-
-            # handle signals to exit gracefully
-            signal.signal(signal.SIGTERM, self.sigterm_handler)
+            self.broadcast_thread = BroadcastThread(self.logger, self.HOST, self.SIM, self.PORT)
         except socket.error, msg:
             self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
             self.close()
 
-    def sigterm_handler(self, signal, frame):
+    def signal_handler(self, signal, frame):
         self.close()
         self.logger.debug("exiting the process")
 
@@ -79,6 +82,7 @@ class Server():
             self.heartbeat_thread.stop_thread()
         if self.broadcast_thread is not None:
             self.broadcast_thread.stop_thread()
+
 
 
 class ControlThread (threading.Thread):
@@ -213,7 +217,7 @@ class HeartBeatThread (threading.Thread):
 
 
 class BroadcastThread(threading.Thread):
-    def __init__(self, logger, SIM, commandPort):
+    def __init__(self, logger, drone_ip, SIM, commandPort):
         """
         :type logger: logging.Logger
         """
@@ -224,14 +228,14 @@ class BroadcastThread(threading.Thread):
         self.streamPort = 5502
         self.visionWidth = 0.0001
         self.helloPort = 4849
+        self.HOST = drone_ip
+
         # Drone specific fields
         if SIM:
-            self.HOST = "127.0.0.1"
-            self.controllerIp = "127.0.0.1"
-            self.broadcast_address = "127.0.0.1"
+            self.broadcast_address = self.HOST
+            self.controllerIp = self.HOST
             self.streamFile = "rtp://127.0.0.1:5000"
         else:
-            self.HOST = "10.1.1.10"
             self.controllerIp = "10.1.1.1"
             self.broadcast_address = "10.1.1.255"
             self.streamFile = "sololink.sdp"
@@ -243,13 +247,15 @@ class BroadcastThread(threading.Thread):
         return
 
     def wait_for_control_module(self):
-        while not os.path.exists('cm_ready'):
+        home_dir = os.path.expanduser('~')
+        cm_rdy = os.path.join(home_dir, '.shae', 'cm_ready')
+        while not os.path.exists(cm_rdy):
             time.sleep(2)
-        cm_mod_time = os.path.getmtime('cm_ready')
+        cm_mod_time = os.path.getmtime(cm_rdy)
         curr_time = time.time()
         while(curr_time - cm_mod_time > 10):
             time.sleep(2)
-            cm_mod_time = os.path.getmtime('cm_ready')
+            cm_mod_time = os.path.getmtime(cm_rdy)
             curr_time = time.time()
 
         self.logger.debug("Control module is now ready")
@@ -272,7 +278,7 @@ class BroadcastThread(threading.Thread):
         bcsocket.bind(('', 0))  # OS will select available port
         while not self.quit:
             bcsocket.sendto(hello_json, (self.broadcast_address, self.helloPort))
-            self.logger.debug("Broadcasting hello")
+            self.logger.debug("Broadcasting hello to " + str(self.broadcast_address) + ":" + str(self.helloPort))
             try:
                 raw_response, address = bcsocket.recvfrom(1024)
                 response = json.loads(raw_response)

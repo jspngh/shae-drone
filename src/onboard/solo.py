@@ -10,7 +10,7 @@ from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logfo
 
 
 class Solo:
-    def __init__(self, vehicle, height=6, speed=5, update_rate=15, logging_level=logging.CRITICAL):
+    def __init__(self, vehicle, height=4, speed=5, update_rate=15, logging_level=logging.CRITICAL):
         """
         :type vehicle: Vehicle
         """
@@ -236,6 +236,12 @@ class Solo:
         veh_loc = self.vehicle.location.global_relative_frame
         loc = Location(longitude=veh_loc.lon, latitude=veh_loc.lat)
         return loc
+
+    def get_gps_signal_strength(self):
+        ss = self.vehicle.gps_0.satellites_visible
+        if ss is None:
+            ss = -1
+        return ss
 
     def get_speed(self):
         return self.vehicle.airspeed
