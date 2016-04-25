@@ -18,6 +18,8 @@ from global_classes import MessageCodes, WayPointQueue, logformat, dateformat
 class ControlModule():
     def __init__(self, logger, log_level, SIM):
         """
+        Initiate the control module
+
         :type logger: logging.Logger
         :type SIM: bool
         """
@@ -51,6 +53,8 @@ class ControlModule():
         try:
             self.unix_socket.bind("/tmp/uds_control")
             self.unix_socket.listen(2)
+            # TODO: see if this gives issues when run on the Solo
+            # if so, only do this when simulating
             self.unix_socket.settimeout(2.0)
 
             self.nav_thread = NavigationThread(solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
@@ -121,6 +125,7 @@ class ControlModule():
                     raise ValueError
 
             except socket.error, msg:
+                print "waiting for client"
                 pass
 
             except ValueError, msg:

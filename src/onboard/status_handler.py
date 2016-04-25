@@ -12,8 +12,11 @@ class StatusHandler():
     """
     This class will take care of packets of the 'status' message type
     """
+
     def __init__(self, solo, queue, logging_level):
         """
+        Initiate the handler
+
         :type solo: Solo
         :type queue: WayPointQueue
         """

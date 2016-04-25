@@ -9,8 +9,11 @@ class SettingsHandler():
     """
     This class will take care of packets of the 'settings' message type
     """
+
     def __init__(self, solo, logging_level):
         """
+        Initiate the handler
+
         :type solo: Solo
         """
         self.packet = None

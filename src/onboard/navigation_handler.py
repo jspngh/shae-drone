@@ -11,8 +11,11 @@ class NavigationHandler():
     """
     This class will take care of packets of the 'navigation' message type
     """
+
     def __init__(self, solo, queue, navigation_thread, logging_level):
         """
+        Initiate the handler
+
         :type solo: Solo
         :type queue: WayPointQueue
         :type navigation_thread: NavigationThread
@@ -99,11 +102,13 @@ class NavigationHandler():
 
 class NavigationThread (threading.Thread):
     """
-    This class will run in another thread
-    and fly to the waypoints in the waypoint_queue
+    This class will run in another thread and fly to the waypoints in the waypoint_queue
     """
+
     def __init__(self, solo, waypoint_queue, logging_level):
         """
+        Initiate the thread
+
         :type solo: Solo
         :type waypoint_queue: WayPointQueue
         """

@@ -15,6 +15,8 @@ from global_classes import MessageCodes, logformat, dateformat
 class Server():
     def __init__(self, logger, SIM):
         """
+        Initiate the server
+
         :type logger: logging.Logger
         :type SIM: bool
         """
@@ -44,6 +46,8 @@ class Server():
         try:
             self.serversocket.bind((self.HOST, self.PORT))
             self.serversocket.listen(1)  # become a server socket, only 1 connection allowed
+            # TODO: see if this gives issues when run on the Solo
+            # if so, only do this when simulating
             self.serversocket.settimeout(2.0)
 
             self.heartbeat_thread = HeartBeatThread(self.logger)
@@ -73,6 +77,7 @@ class Server():
                                                heartbeat_thread=self.heartbeat_thread, logger=self.logger)
                 control_thread.start()
             except socket.error:
+                print "waiting for client"
                 pass
 
     def close(self):
@@ -87,6 +92,8 @@ class Server():
 class ControlThread (threading.Thread):
     def __init__(self, data, control_socket, client_socket, heartbeat_thread, logger):
         """
+        Initiate the thread
+
         :type control_socket: Socket
         :type client_socket: Socket
         :type heartbeat_thread: HeartBeatThread
