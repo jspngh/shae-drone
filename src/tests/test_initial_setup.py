@@ -4,9 +4,7 @@ import time
 import socket
 import unittest
 
-sys.path.append("../simulator/src")
-sys.path.append("../onboard")
-from simulator import Simulator
+from shae.simulator import Simulator
 
 
 class TestSetup(unittest.TestCase):
