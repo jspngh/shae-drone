@@ -6,7 +6,7 @@ import struct
 import unittest
 
 from shae.onboard.global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue
-from shae.simulator import Simulator
+from shae.simulator.simulator import Simulator
 
 
 class TestStatus(unittest.TestCase):

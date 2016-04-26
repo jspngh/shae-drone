@@ -64,6 +64,7 @@ class Server():
         self.broadcast_thread.start()
         while not self.quit:
             try:
+                self.logger.debug("Waiting for connection in server")
                 client, address = self.serversocket.accept()
                 self.broadcast_thread.stop_thread()
                 length = client.recv(4)
@@ -77,8 +78,9 @@ class Server():
                                                heartbeat_thread=self.heartbeat_thread, logger=self.logger)
                 control_thread.start()
             except socket.error:
-                print "waiting for client"
+                self.logger.debug("No connection was made")
                 pass
+        self.serversocket.close()
 
     def close(self):
         self.quit = True
@@ -152,6 +154,7 @@ class ControlThread (threading.Thread):
             except socket.error, msg:
                 self.logger.debug("Error in server thread: {0}".format(msg))
 
+        self.logger.debug("closing controlthread")
         self.control_socket.close()
         self.client_socket.close()
 
