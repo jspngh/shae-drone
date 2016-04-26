@@ -7,6 +7,8 @@ from dronekit_sitl import SITL
 from stream_simulator import StreamSimulator
 
 
+## @brief The Simulator.
+# @ingroup Simulator
 class Simulator:
     def __init__(self):
         # SITL is the system in the loop simulator from dronekit

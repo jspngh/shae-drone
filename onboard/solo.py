@@ -9,6 +9,7 @@ from GoProConstants import GOPRO_RESOLUTION, GOPRO_FRAME_RATE
 from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logformat, dateformat
 
 
+## @ingroup Onboard
 class Solo:
     def __init__(self, vehicle, height=4, speed=5, update_rate=15, logging_level=logging.CRITICAL):
         """

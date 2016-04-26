@@ -14,6 +14,8 @@ from settings_handler import SettingsHandler
 from status_handler import StatusHandler
 from global_classes import MessageCodes, WayPointQueue, logformat, dateformat
 
+## @ingroup Onboard
+# @brief The ControlModule class.
 
 class ControlModule():
     def __init__(self, logger, log_level, SIM):

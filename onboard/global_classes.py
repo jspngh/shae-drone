@@ -1,10 +1,15 @@
 from json import JSONEncoder
 from threading import RLock
 
+## @defgroup Global_classes
+# @ingroup Onboard
+
 logformat = '[%(levelname)s] %(asctime)s in \'%(name)s\': %(message)s'
 dateformat = '%m-%d %H:%M:%S'
 
 
+
+## @ingroup Global_classes
 class MessageCodes():
     ACK = 200
     STATUS_RESPONSE = 300
@@ -12,32 +17,32 @@ class MessageCodes():
     START_HEARTBEAT = 404
     ERR = 500
 
-
+## @ingroup Global_classes
 class DroneType():
     def __init__(self, manufacturer, model):
         self.manufacturer = manufacturer
         self.model = model
 
-
+## @ingroup Global_classes
 class DroneTypeEncoder(JSONEncoder):
     def default(self, drone):
         if isinstance(drone, DroneType):
             dt = {'manufacturer': drone.manufacturer, 'model': drone.model}
             return dt
 
-
+## @ingroup Global_classes
 class Location():
     def __init__(self, longitude=0.0, latitude=0.0):
         self.longitude = longitude
         self.latitude = latitude
 
-
+## @ingroup Global_classes
 class LocationEncoder(JSONEncoder):
     def default(self, loc):
         loc = {'latitude': loc.latitude, 'longitude': loc.longitude}
         return loc
 
-
+## @ingroup Global_classes
 class WayPoint():
     def __init__(self, location, order):
         """
@@ -49,14 +54,14 @@ class WayPoint():
         self.location = location
         self.order = order
 
-
+## @ingroup Global_classes
 class WayPointEncoder(JSONEncoder):
     def default(self, wp):
         loc = {'latitude': wp.location.latitude, 'longitude': wp.location.longitude}
         res = {'order': wp.order, 'location': loc}
         return res
 
-
+## @ingroup Global_classes
 class WayPointQueue():
     def __init__(self):
         self.queue_lock = RLock()  # this lock will be used when accessing the waypoint queue

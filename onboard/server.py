@@ -12,6 +12,7 @@ import threading
 from global_classes import MessageCodes, logformat, dateformat
 
 
+## @ingroup Onboard
 class Server():
     def __init__(self, logger, SIM):
         """
@@ -84,7 +85,7 @@ class Server():
             self.broadcast_thread.stop_thread()
 
 
-
+## @ingroup Onboard
 class ControlThread (threading.Thread):
     def __init__(self, data, control_socket, client_socket, heartbeat_thread, logger):
         """
@@ -149,7 +150,7 @@ class ControlThread (threading.Thread):
         self.control_socket.close()
         self.client_socket.close()
 
-
+## @ingroup Onboard
 class HeartBeatThread (threading.Thread):
     def __init__(self, logger):
         """
@@ -216,6 +217,7 @@ class HeartBeatThread (threading.Thread):
         self.quit = True
 
 
+## @ingroup Onboard
 class BroadcastThread(threading.Thread):
     def __init__(self, logger, drone_ip, SIM, commandPort):
         """

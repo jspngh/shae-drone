@@ -7,6 +7,7 @@ from solo import Solo
 from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue, logformat, dateformat
 
 
+## @ingroup Onboard
 class NavigationHandler():
     """
     This class will take care of packets of the 'navigation' message type
@@ -97,6 +98,7 @@ class NavigationHandler():
         self.solo.land()
 
 
+## @ingroup Onboard
 class NavigationThread (threading.Thread):
     """
     This class will run in another thread
