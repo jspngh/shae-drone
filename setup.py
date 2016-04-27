@@ -13,8 +13,8 @@ setup(
     author='Project Shae',
     author_email='contact@shae.be',
     description=('The drone code for Project Shae'),
-    packages=['shae', 'shae.simulator', 'shae.onboard'],
-    package_dir={'shae': 'src', 'shae.simulator': 'src/simulator', 'shae.onboard': 'src/onboard'},
-    package_data={'shae.simulator': ['videos/*.h264', 'videos/*.mp4']}
+    packages=['shae', 'shae.simulator', 'shae.onboard', 'shae.tests'],
+    package_dir={'shae': 'src', 'shae.simulator': 'src/simulator', 'shae.onboard': 'src/onboard', 'shae.tests': 'src/tests'},
+    package_data={'shae': ['sonar-project.properties'], 'shae.simulator': ['videos/*.h264', 'videos/*.mp4'], 'shae.tests': ['.coveragerc']},
     # long_description=read('README'),
 )
