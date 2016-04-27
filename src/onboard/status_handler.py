@@ -8,6 +8,7 @@ from solo import Solo
 from global_classes import DroneTypeEncoder, LocationEncoder, WayPoint, WayPointEncoder, WayPointQueue, logformat, dateformat
 
 
+## @ingroup Onboard
 class StatusHandler():
     """
     This class will take care of packets of the 'status' message type

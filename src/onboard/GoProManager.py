@@ -55,6 +55,7 @@ REQUERY_COMMANDS = (mavutil.mavlink.GOPRO_COMMAND_VIDEO_SETTINGS,
                     mavutil.mavlink.GOPRO_COMMAND_PROTUNE_EXPOSURE)
 
 
+## @ingroup Onboard
 class GoProManager():
     def __init__(self, logging_level):
         # GoPro heartbeat state

@@ -9,6 +9,9 @@ import logging
 import sys
 
 
+##
+# @brief The StreamSimulator class.
+# @ingroup Simulator
 class StreamSimulator(threading.Thread):
     """
     The StreamSimulator executes the following command: cvlc testfootage.mp4 --sout '#rtp{dst=127.0.0.1,port=5000,ptype-video=96,mux=ts}'

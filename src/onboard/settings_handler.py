@@ -5,6 +5,7 @@ from solo import Solo
 from global_classes import logformat, dateformat
 
 
+## @ingroup Onboard
 class SettingsHandler():
     """
     This class will take care of packets of the 'settings' message type

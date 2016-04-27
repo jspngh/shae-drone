@@ -13,6 +13,7 @@ from shae.onboard.control_module import ControlModule
 from shae.onboard.global_classes import logformat, dateformat
 
 
+## @ingroup Simulator
 class ServerSimulator(threading.Thread):
     def __init__(self, logger):
         threading.Thread.__init__(self)
@@ -27,6 +28,7 @@ class ServerSimulator(threading.Thread):
         self.logger.debug('closed server')
 
 
+## @ingroup Simulator
 class ControlModuleSimulator(threading.Thread):
     def __init__(self, logger, log_lvl):
         threading.Thread.__init__(self)
@@ -41,6 +43,8 @@ class ControlModuleSimulator(threading.Thread):
         self.logger.debug('closed control module')
 
 
+## @brief The Simulator.
+# @ingroup Simulator
 class Simulator:
     def __init__(self):
         # SITL is the system in the loop simulator from dronekit
