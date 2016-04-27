@@ -125,13 +125,14 @@ class ControlModule():
                     raise ValueError
 
             except socket.error, msg:
-                print "waiting for client"
                 pass
 
             except ValueError, msg:
                 # TODO: handle error
                 self.logger.debug("Value error was raised: {0}".format(msg))
                 client.send(struct.pack(">I", MessageCodes.ERR))
+
+        self.unix_socket.close()
 
     def close(self):
         if not self.quit:

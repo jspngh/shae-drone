@@ -4,7 +4,7 @@ import time
 import socket
 import unittest
 
-from shae.simulator import Simulator
+from shae.simulator.simulator import Simulator
 
 
 class TestSetup(unittest.TestCase):
@@ -23,7 +23,7 @@ class TestSetup(unittest.TestCase):
         bcsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
         bcsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         bcsocket.settimeout(10)
-        bcsocket.bind(('', 4849))
+        bcsocket.bind(('127.0.0.1', 4849))
 
         hello_received = 0
 

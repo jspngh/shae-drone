@@ -142,6 +142,7 @@ class NavigationThread (threading.Thread):
 
         if self.rth and not self.waypoint_queue.is_empty():
             home = self.waypoint_queue.remove_waypoint()
+            self.logger.debug("I am coming home")
             self.solo.visit_waypoint(home)
             self.solo.land()
 

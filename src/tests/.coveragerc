@@ -25,5 +25,4 @@ exclude_lines =
 ignore_errors = True
 
 omit = */usr/lib/python2.7/*
-       */usr/local/lib/python2.7/*
        *GoPro*

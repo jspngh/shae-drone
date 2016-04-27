@@ -6,7 +6,7 @@ import struct
 import unittest
 
 from shae.onboard.global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue
-from shae.simulator import Simulator
+from shae.simulator.simulator import Simulator
 
 
 class TestNavigation(unittest.TestCase):
@@ -111,8 +111,9 @@ class TestNavigation(unittest.TestCase):
         ack = struct.unpack(">H", data)[0]
         sock.close()
         self.assertEqual(ack, 200)
-
-        time.sleep(15)  # wait a bit before going to the next test
+        print 'before last sleep'
+        time.sleep(35)  # wait a bit before going to the next test
+        print 'after last sleep'
         return
 
 

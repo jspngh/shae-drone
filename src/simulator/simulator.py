@@ -16,6 +16,7 @@ from shae.onboard.global_classes import logformat, dateformat
 class ServerSimulator(threading.Thread):
     def __init__(self, logger):
         threading.Thread.__init__(self)
+        self.logger = logger
         self.server = Server(logger=logger, SIM=True)
 
     def run(self):
@@ -23,12 +24,13 @@ class ServerSimulator(threading.Thread):
 
     def stop_thread(self):
         self.server.close()
-        print 'closed server'
+        self.logger.debug('closed server')
 
 
 class ControlModuleSimulator(threading.Thread):
     def __init__(self, logger, log_lvl):
         threading.Thread.__init__(self)
+        self.logger = logger
         self.control_module = ControlModule(logger=logger, log_level=log_lvl, SIM=True)
 
     def run(self):
@@ -36,7 +38,7 @@ class ControlModuleSimulator(threading.Thread):
 
     def stop_thread(self):
         self.control_module.close()
-        print 'closed controle module'
+        self.logger.debug('closed control module')
 
 
 class Simulator:
@@ -110,6 +112,7 @@ class Simulator:
         handler.setLevel(log_level)
         simulation_logger.addHandler(handler)
         simulation_logger.setLevel(log_level)
+        self.logger = simulation_logger
 
         self.server_thread = ServerSimulator(logger=simulation_logger)
         self.control_thread = ControlModuleSimulator(logger=simulation_logger, log_lvl=log_level)
@@ -121,15 +124,18 @@ class Simulator:
         signal.signal(signal.SIGTERM, self.signal_handler)
 
     def signal_handler(self, signal, frame):
-        print "Exiting simulator"
+        self.logger.debug("Exiting simulator")
         self.stop()
         sys.exit(0)
 
     def stop(self):
         self.stream_simulator.stop_thread()
+        self.logger.debug("Stopping server and control module")
         self.server_thread.stop_thread()
         self.control_thread.stop_thread()
+        self.logger.debug("Sleeping")
         time.sleep(5.0)
+        self.logger.debug("Stopping SITL")
         self.sitl.stop()
 
 
