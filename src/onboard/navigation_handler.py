@@ -8,18 +8,15 @@ from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue, l
 
 
 ## @ingroup Onboard
+# @brief This class will take care of packets of the 'navigation' message type
 class NavigationHandler():
-    """
-    This class will take care of packets of the 'navigation' message type
-    """
-
     def __init__(self, solo, queue, navigation_thread, logging_level):
         """
         Initiate the handler
 
-        :type solo: Solo
-        :type queue: WayPointQueue
-        :type navigation_thread: NavigationThread
+        @type solo: Solo
+        @type queue: WayPointQueue
+        @type navigation_thread: NavigationThread
         """
         self.packet = None
         self.message = None
@@ -30,7 +27,7 @@ class NavigationHandler():
         # set up logging
         self.logger = logging.getLogger("Navigation Handler")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
-        handler = logging.StreamHandler(stream=sys.stdout)  # TODO
+        handler = logging.StreamHandler(stream=sys.stdout)  # TODO make logging to file possible
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.logger.addHandler(handler)
@@ -111,8 +108,8 @@ class NavigationThread (threading.Thread):
         """
         Initiate the thread
 
-        :type solo: Solo
-        :type waypoint_queue: WayPointQueue
+        @type solo: Solo
+        @type waypoint_queue: WayPointQueue
         """
         threading.Thread.__init__(self)
         self.solo = solo

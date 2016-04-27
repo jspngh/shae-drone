@@ -13,13 +13,14 @@ from global_classes import MessageCodes, logformat, dateformat
 
 
 ## @ingroup Onboard
+# @brief Onboard server that will communicate with the workstation
 class Server():
     def __init__(self, logger, SIM):
         """
         Initiate the server
 
-        :type logger: logging.Logger
-        :type SIM: bool
+        @type logger: logging.Logger
+        @type SIM: bool
         """
         self.SIM = SIM
         self.logger = logger
@@ -42,6 +43,7 @@ class Server():
         signal.signal(signal.SIGTERM, self.signal_handler)
         signal.signal(signal.SIGINT, self.signal_handler)
 
+        # Initiate to None in order to be able to compare to None later
         self.heartbeat_thread = None
         self.broadcast_thread = None
         try:
@@ -98,10 +100,10 @@ class ControlThread (threading.Thread):
         """
         Initiate the thread
 
-        :type control_socket: Socket
-        :type client_socket: Socket
-        :type heartbeat_thread: HeartBeatThread
-        :type logger: logging.Logger
+        @type control_socket: Socket
+        @type client_socket: Socket
+        @type heartbeat_thread: HeartBeatThread
+        @type logger: logging.Logger
         """
         threading.Thread.__init__(self)
         self.data = data
@@ -165,7 +167,7 @@ class ControlThread (threading.Thread):
 class HeartBeatThread (threading.Thread):
     def __init__(self, logger):
         """
-        :type logger: logging.Logger
+        @type logger: logging.Logger
         """
         threading.Thread.__init__(self)
         self.quit = False
@@ -232,7 +234,7 @@ class HeartBeatThread (threading.Thread):
 class BroadcastThread(threading.Thread):
     def __init__(self, logger, drone_ip, SIM, commandPort):
         """
-        :type logger: logging.Logger
+        @type logger: logging.Logger
         """
         threading.Thread.__init__(self)
         self.SIM = SIM

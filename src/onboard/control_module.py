@@ -14,16 +14,16 @@ from settings_handler import SettingsHandler
 from status_handler import StatusHandler
 from global_classes import MessageCodes, WayPointQueue, logformat, dateformat
 
+
 ## @ingroup Onboard
 # @brief The ControlModule class.
-
 class ControlModule():
     def __init__(self, logger, log_level, SIM):
         """
         Initiate the control module
 
-        :type logger: logging.Logger
-        :type SIM: bool
+        @type logger: logging.Logger
+        @type SIM: bool
         """
         self.logger = logger
         self.log_level = log_level
@@ -40,6 +40,7 @@ class ControlModule():
         signal.signal(signal.SIGTERM, self.signal_handler)
         signal.signal(signal.SIGINT, self.signal_handler)
 
+        # Initiate to None in order to be able to compare to None later
         self.nav_thread = None
         self.nav_handler = None
         self.stat_handler = None
@@ -89,10 +90,10 @@ class ControlModule():
                 packet = json.loads(raw)  # parse the Json we received
                 if 'message_type' not in packet:  # every packet should have a MessageType field
                     self.logger.info("every packet should have a message_type field")
-                    raise ValueError
+                    raise ValueError("Packet has no message_type field")
                 if 'message' not in packet:  # every packet should have a Message field
                     self.logger.info("every packet should have a message field")
-                    raise ValueError
+                    raise ValueError("Packet has no message field")
 
                 message_type = packet['message_type']  # the 'message type' attribute tells us to which class of packet this packet belongs
                 message = packet['message']           # the 'message' attribute tells what packet it is, within it's class
@@ -130,7 +131,6 @@ class ControlModule():
                 pass
 
             except ValueError, msg:
-                # TODO: handle error
                 self.logger.debug("Value error was raised: {0}".format(msg))
                 client.send(struct.pack(">I", MessageCodes.ERR))
 

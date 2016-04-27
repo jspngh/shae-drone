@@ -18,7 +18,7 @@ class StreamSimulator(threading.Thread):
     """
     def __init__(self, footage):
         """
-        :param footage: The path to the video with testfootage that will be played back by the stream simulator
+        @param footage: The path to the video with testfootage that will be played back by the stream simulator
         """
         self.footage = footage  # '../videos/testfootage.mp4'
 

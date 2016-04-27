@@ -13,7 +13,7 @@ from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logfo
 class Solo:
     def __init__(self, vehicle, height=4, speed=5, update_rate=15, logging_level=logging.CRITICAL):
         """
-        :type vehicle: Vehicle
+        @type vehicle: Vehicle
         """
         self.goproManager = GoProManager(logging_level=logging_level)
         self.vehicle = vehicle
@@ -203,7 +203,7 @@ class Solo:
 
     def visit_waypoint(self, waypoint):
         """
-        :type waypoint: WayPoint
+        @type waypoint: WayPoint
         """
         latlon_to_m = 1.113195e5   # converts lat/lon to meters
 
@@ -375,7 +375,7 @@ class Solo:
         """
         This function was taken from http://python.dronekit.io/examples/mission_basic.html
 
-        :type waypoint: WayPoint
+        @type waypoint: WayPoint
         :returns: distance in metres to the waypoint
         """
         lat = waypoint.location.latitude
@@ -390,7 +390,7 @@ class Solo:
         """
         This function was taken from http://python.dronekit.io/examples/mission_basic.html
 
-        :type original_location: Location
+        @type original_location: Location
         :returns: a LocationGlobal object containing the latitude/longitude `dNorth` and `dEast` metres from the
                   specified `original_location`. The returned Location has the same `alt` value
                   as `original_location`.
@@ -409,8 +409,8 @@ class Solo:
         """
         This function was taken from http://python.dronekit.io/examples/mission_basic.html
 
-        :type aLocation1: Location
-        :type aLocation2: Location
+        @type aLocation1: Location
+        @type aLocation2: Location
         :returns: the ground distance in metres between two LocationGlobal objects.
         """
         latlon_to_m = 1.113195e5   # converts lat/lon to meters
