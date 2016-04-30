@@ -3,14 +3,13 @@
 To install the code as modules run `python2 setup.py install --prefix=/usr/local`
 
 ## Simulator
-Caveat: When the simulator is killed while the simulated drone is still flying, the simulator will fail to close cleanly
 
 ### Onboard + vehicle (drone)
 
 * In 'drone/onboard/global_classes.py' set SIM = True
 * Execute the following commands in different terminals (assuming the working directory is 'drone/onboard'):
 ```
-python control_module.py   
+python control_module.py
 python server.py
 ```
 * Now the drone is simulated and reachable by sending json-messages to 127.0.0.1:6330

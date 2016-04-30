@@ -1,10 +1,16 @@
 from json import JSONEncoder
 from threading import RLock
 
+## @defgroup Global_classes
+# @ingroup Onboard
+
 logformat = '[%(levelname)s] %(asctime)s in \'%(name)s\': %(message)s'
 dateformat = '%m-%d %H:%M:%S'
 
 
+## @ingroup Global_classes
+# @brief Codes to tell the workstation what to expect
+# When sending a message to the workstation, the message will be preceded by one of these codes
 class MessageCodes():
     ACK = 200
     STATUS_RESPONSE = 300
@@ -13,12 +19,17 @@ class MessageCodes():
     ERR = 500
 
 
+## @ingroup Global_classes
+# @brief The type of drone the onboard code is written for
+# This can be used to let the workstation know what type of drone it's dealing with
 class DroneType():
     def __init__(self, manufacturer, model):
         self.manufacturer = manufacturer
         self.model = model
 
 
+## @ingroup Global_classes
+# @brief Parses the DroneType class to JSON
 class DroneTypeEncoder(JSONEncoder):
     def default(self, drone):
         if isinstance(drone, DroneType):
@@ -26,30 +37,39 @@ class DroneTypeEncoder(JSONEncoder):
             return dt
 
 
+## @ingroup Global_classes
+# @brief Class that holds the coordinates of a location
 class Location():
     def __init__(self, longitude=0.0, latitude=0.0):
         self.longitude = longitude
         self.latitude = latitude
 
 
+## @ingroup Global_classes
+# @brief Parses the Location class to JSON
 class LocationEncoder(JSONEncoder):
     def default(self, loc):
         loc = {'latitude': loc.latitude, 'longitude': loc.longitude}
         return loc
 
 
+## @ingroup Global_classes
+# @brief Combines a location with an order
+# These are objects the drone will fly to, in order
 class WayPoint():
     def __init__(self, location, order):
         """
-        :param location: the location of the waypoint, with longitude and latitude
-        :type location: Location
-        :param order: details in which order the waypoints should be visited
-        :type order: int
+        @param location: the location of the waypoint, with longitude and latitude
+        @type location: Location
+        @param order: details in which order the waypoints should be visited
+        @type order: int
         """
         self.location = location
         self.order = order
 
 
+## @ingroup Global_classes
+# @brief Parses the WayPoint class to JSON
 class WayPointEncoder(JSONEncoder):
     def default(self, wp):
         loc = {'latitude': wp.location.latitude, 'longitude': wp.location.longitude}
@@ -57,6 +77,10 @@ class WayPointEncoder(JSONEncoder):
         return res
 
 
+## @ingroup Global_classes
+# @brief Class to hold a series of object from the WayPoint class
+# This class holds a lock in order to provide some protection against concurrent modification
+# Also provides functionality to sort Waypoints based on their order
 class WayPointQueue():
     def __init__(self):
         self.queue_lock = RLock()  # this lock will be used when accessing the waypoint queue
@@ -67,8 +91,8 @@ class WayPointQueue():
 
     def insert_waypoint(self, waypoint, side='back'):
         """
-        :type waypoint: WayPoint
-        :param side: specifies whether to insert the waypoint in the front or the back of the queue
+        @type waypoint: WayPoint
+        @param side: specifies whether to insert the waypoint in the front or the back of the queue
         """
         self.queue_lock.acquire()
         if side == 'front':
@@ -79,7 +103,7 @@ class WayPointQueue():
 
     def remove_waypoint(self, side='front'):
         """
-        :param side: specifies whether to remove the waypoint from the front or the back of the queue
+        @param side: specifies whether to remove the waypoint from the front or the back of the queue
         """
         self.queue_lock.acquire()
         if side == 'back':
@@ -115,6 +139,9 @@ class WayPointQueue():
         self.queue_lock.release()
 
     def is_empty(self):
+        """
+        Is the queue empty or not
+        """
         self.queue_lock.acquire()
         result = not self.queue
         if result is False and self.last_waypoint_order != -1:
@@ -123,6 +150,9 @@ class WayPointQueue():
         return result
 
     def clear_queue(self):
+        """
+        Remove all items from the queue
+        """
         self.queue_lock.acquire()
         self.queue = []
         self.queue_lock.release()

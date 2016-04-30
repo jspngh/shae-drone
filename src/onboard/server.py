@@ -12,11 +12,15 @@ import threading
 from global_classes import MessageCodes, logformat, dateformat
 
 
+## @ingroup Onboard
+# @brief Onboard server that will communicate with the workstation
 class Server():
     def __init__(self, logger, SIM):
         """
-        :type logger: logging.Logger
-        :type SIM: bool
+        Initiate the server
+
+        @type logger: logging.Logger
+        @type SIM: bool
         """
         self.SIM = SIM
         self.logger = logger
@@ -39,11 +43,15 @@ class Server():
         signal.signal(signal.SIGTERM, self.signal_handler)
         signal.signal(signal.SIGINT, self.signal_handler)
 
+        # Initiate to None in order to be able to compare to None later
         self.heartbeat_thread = None
         self.broadcast_thread = None
         try:
             self.serversocket.bind((self.HOST, self.PORT))
             self.serversocket.listen(1)  # become a server socket, only 1 connection allowed
+            # TODO: see if this gives issues when run on the Solo
+            # if so, only do this when simulating
+            self.serversocket.settimeout(2.0)
 
             self.heartbeat_thread = HeartBeatThread(self.logger)
             self.broadcast_thread = BroadcastThread(self.logger, self.HOST, self.SIM, self.PORT)
@@ -59,6 +67,7 @@ class Server():
         self.broadcast_thread.start()
         while not self.quit:
             try:
+                self.logger.debug("Waiting for connection in server")
                 client, address = self.serversocket.accept()
                 self.broadcast_thread.stop_thread()
                 length = client.recv(4)
@@ -71,9 +80,10 @@ class Server():
                 control_thread = ControlThread(raw, control_socket=control_socket, client_socket=client,
                                                heartbeat_thread=self.heartbeat_thread, logger=self.logger)
                 control_thread.start()
-            except socket.error, msg:
-                self.logger.debug("Error in server: {0}, quitting".format(msg))
-                self.close()
+            except socket.error:
+                self.logger.debug("No connection was made")
+                pass
+        self.serversocket.close()
 
     def close(self):
         self.quit = True
@@ -84,14 +94,16 @@ class Server():
             self.broadcast_thread.stop_thread()
 
 
-
+## @ingroup Onboard
 class ControlThread (threading.Thread):
     def __init__(self, data, control_socket, client_socket, heartbeat_thread, logger):
         """
-        :type control_socket: Socket
-        :type client_socket: Socket
-        :type heartbeat_thread: HeartBeatThread
-        :type logger: logging.Logger
+        Initiate the thread
+
+        @type control_socket: Socket
+        @type client_socket: Socket
+        @type heartbeat_thread: HeartBeatThread
+        @type logger: logging.Logger
         """
         threading.Thread.__init__(self)
         self.data = data
@@ -146,14 +158,16 @@ class ControlThread (threading.Thread):
             except socket.error, msg:
                 self.logger.debug("Error in server thread: {0}".format(msg))
 
+        self.logger.debug("closing controlthread")
         self.control_socket.close()
         self.client_socket.close()
 
 
+## @ingroup Onboard
 class HeartBeatThread (threading.Thread):
     def __init__(self, logger):
         """
-        :type logger: logging.Logger
+        @type logger: logging.Logger
         """
         threading.Thread.__init__(self)
         self.quit = False
@@ -216,10 +230,11 @@ class HeartBeatThread (threading.Thread):
         self.quit = True
 
 
+## @ingroup Onboard
 class BroadcastThread(threading.Thread):
     def __init__(self, logger, drone_ip, SIM, commandPort):
         """
-        :type logger: logging.Logger
+        @type logger: logging.Logger
         """
         threading.Thread.__init__(self)
         self.SIM = SIM

@@ -3,12 +3,11 @@
 #
 import sys
 import yaml
-import struct
 import logging
 import threading
 from pymavlink import mavutil
 
-from GoProConstants import *
+import GoProConstants
 from global_classes import logformat, dateformat
 
 VALID_GET_COMMANDS = (mavutil.mavlink.GOPRO_COMMAND_POWER,
@@ -56,16 +55,19 @@ REQUERY_COMMANDS = (mavutil.mavlink.GOPRO_COMMAND_VIDEO_SETTINGS,
                     mavutil.mavlink.GOPRO_COMMAND_PROTUNE_EXPOSURE)
 
 
+## @ingroup Onboard
+# @brief Takes care of the interaction with the GoPro camera of the Solo
+# This class was taken and adapted from 3DR code on the Solo
 class GoProManager():
     def __init__(self, logging_level):
         # GoPro heartbeat state
         self.status = mavutil.mavlink.GOPRO_HEARTBEAT_STATUS_DISCONNECTED
-        self.captureMode = CAPTURE_MODE_VIDEO
+        self.captureMode = GoProConstants.CAPTURE_MODE_VIDEO
         self.isRecording = False
         # Additional GoPro state
         self.battery = 0
-        self.model = MODEL_NONE
-        self.videoFormat = VIDEO_FORMAT_NTSC
+        self.model = GoProConstants.MODEL_NONE
+        self.videoFormat = GoProConstants.VIDEO_FORMAT_NTSC
         self.videoResolution = 0
         self.videoFrameRate = 0
         self.videoFieldOfView = 0
@@ -165,7 +167,7 @@ class GoProManager():
             videoResolution = value[0]
             videoFrameRate = value[1]
             videoFieldOfView = value[2]
-            videoFormat = VIDEO_FORMAT_NTSC if (value[3] & mavutil.mavlink.GOPRO_VIDEO_SETTINGS_TV_MODE) == 0 else VIDEO_FORMAT_PAL
+            videoFormat = GoProConstants.VIDEO_FORMAT_NTSC if (value[3] & mavutil.mavlink.GOPRO_VIDEO_SETTINGS_TV_MODE) == 0 else GoProConstants.VIDEO_FORMAT_PAL
             if self.videoResolution != videoResolution:
                 self.videoResolution = videoResolution
                 self.logger.debug("Gopro video resolution changed to %d" % (self.videoResolution))

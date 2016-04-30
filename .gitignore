@@ -3,4 +3,4 @@
 .coverage
 *cm_ready
 
-simulator/src/cm_ready
+build/

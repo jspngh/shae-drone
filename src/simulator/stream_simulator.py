@@ -9,14 +9,16 @@ import logging
 import sys
 
 
-# TODO: listen on port 5502 for connection, then start to stream
+##
+# @brief The StreamSimulator class.
+# @ingroup Simulator
 class StreamSimulator(threading.Thread):
     """
     The StreamSimulator executes the following command: cvlc testfootage.mp4 --sout '#rtp{dst=127.0.0.1,port=5000,ptype-video=96,mux=ts}'
     """
     def __init__(self, footage):
         """
-        :param footage: The path to the video with testfootage that will be played back by the stream simulator
+        @param footage: The path to the video with testfootage that will be played back by the stream simulator
         """
         self.footage = footage  # '../videos/testfootage.mp4'
 

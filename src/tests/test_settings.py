@@ -5,10 +5,8 @@ import socket
 import struct
 import unittest
 
-sys.path.append("../simulator/src")
-sys.path.append("../onboard")
-from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue
-from simulator import Simulator
+from shae.onboard.global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue
+from shae.simulator.simulator import Simulator
 
 
 class TestSettings(unittest.TestCase):

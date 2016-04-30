@@ -1,4 +1,5 @@
-# GoPro constants as defined in https://docs.google.com/document/d/1CcYOCZRw9C4sIQu4xDXjPMkxZYROmTLB0EtpZamnq74/edit#
+## @defgroup GoProConstants
+# @ingroup Onboard
 
 GOPRO_V1_SPEC_VERSION = 1
 GOPRO_V2_SPEC_VERSION = 2
@@ -31,6 +32,7 @@ VIDEO_FORMAT_NTSC = 0
 VIDEO_FORMAT_PAL = 1
 
 
+## @ingroup GoProConstants
 class MAV_MODE_GIMBAL():
     MAV_MODE_GIMBAL_UNINITIALIZED = 0  # Gimbal is powered on but has not started initializing yet
     MAV_MODE_GIMBAL_CALIBRATING_PITCH = 1  # Gimbal is currently running calibration on the pitch axis
@@ -44,6 +46,7 @@ class MAV_MODE_GIMBAL():
     MAV_MODE_GIMBAL__END = 7  #
 
 
+## @ingroup GoProConstants
 class GIMBAL_AXIS():
     GIMBAL_AXIS_YAW = 0  # Gimbal yaw axis
     GIMBAL_AXIS_PITCH = 1  # Gimbal pitch axis
@@ -51,6 +54,7 @@ class GIMBAL_AXIS():
     GIMBAL_AXIS__END = 3  #
 
 
+## @ingroup GoProConstants
 class GIMBAL_AXIS_CALIBRATION_STATUS():
     GIMBAL_AXIS_CALIBRATION_STATUS_IN_PROGRESS = 0  # Axis calibration is in progress
     GIMBAL_AXIS_CALIBRATION_STATUS_SUCCEEDED = 1  # Axis calibration succeeded
@@ -58,6 +62,7 @@ class GIMBAL_AXIS_CALIBRATION_STATUS():
     GIMBAL_AXIS_CALIBRATION_STATUS__END = 3  #
 
 
+## @ingroup GoProConstants
 class GIMBAL_AXIS_CALIBRATION_REQUIRED():
     GIMBAL_AXIS_CALIBRATION_REQUIRED_UNKNOWN = 0  # Whether or not this axis requires calibration is unknown at this time
     GIMBAL_AXIS_CALIBRATION_REQUIRED_TRUE = 1  # This axis requires calibration
@@ -65,6 +70,7 @@ class GIMBAL_AXIS_CALIBRATION_REQUIRED():
     GIMBAL_AXIS_CALIBRATION_REQUIRED__END = 3  #
 
 
+## @ingroup GoProConstants
 class GOPRO_HEARTBEAT_STATUS():
     GOPRO_HEARTBEAT_STATUS_DISCONNECTED = 0  # No GoPro connected
     GOPRO_HEARTBEAT_STATUS_INCOMPATIBLE = 1  # The detected GoPro is not HeroBus compatible
@@ -73,17 +79,20 @@ class GOPRO_HEARTBEAT_STATUS():
     GOPRO_HEARTBEAT_STATUS__END = 4  #
 
 
+## @ingroup GoProConstants
 class GOPRO_HEARTBEAT_FLAGS():
     GOPRO_FLAG_RECORDING = 1  # GoPro is currently recording
     GOPRO_HEARTBEAT_FLAGS__END = 2  #
 
 
+## @ingroup GoProConstants
 class GOPRO_REQUEST_STATUS():
     GOPRO_REQUEST_SUCCESS = 0  # The write message with ID indicated succeeded
     GOPRO_REQUEST_FAILED = 1  # The write message with ID indicated failed
     GOPRO_REQUEST_STATUS__END = 2  #
 
 
+## @ingroup GoProConstants
 class GOPRO_COMMAND():
     GOPRO_COMMAND_POWER = 0  # (Get/Set)
     GOPRO_COMMAND_CAPTURE_MODE = 1  # (Get/Set)
@@ -105,6 +114,7 @@ class GOPRO_COMMAND():
     GOPRO_COMMAND__END = 17  #
 
 
+## @ingroup GoProConstants
 class GOPRO_CAPTURE_MODE():
     GOPRO_CAPTURE_MODE_VIDEO = 0  # Video mode
     GOPRO_CAPTURE_MODE_PHOTO = 1  # Photo mode
@@ -117,6 +127,7 @@ class GOPRO_CAPTURE_MODE():
     GOPRO_CAPTURE_MODE__END = 256  #
 
 
+## @ingroup GoProConstants
 class GOPRO_RESOLUTION(object):
     GOPRO_RESOLUTION_480p = 0  # 848 x 480 (480p)
     GOPRO_RESOLUTION_720p = 1  # 1280 x 720 (720p)
@@ -135,6 +146,7 @@ class GOPRO_RESOLUTION(object):
     GOPRO_RESOLUTION__END = 14  #
 
 
+## @ingroup GoProConstants
 class GOPRO_FRAME_RATE():
     GOPRO_FRAME_RATE_12 = 0  # 12 FPS
     GOPRO_FRAME_RATE_15 = 1  # 15 FPS
@@ -153,6 +165,7 @@ class GOPRO_FRAME_RATE():
     GOPRO_FRAME_RATE__END = 14  #
 
 
+## @ingroup GoProConstants
 class GOPRO_FIELD_OF_VIEW():
     GOPRO_FIELD_OF_VIEW_WIDE = 0  # 0x00: Wide
     GOPRO_FIELD_OF_VIEW_MEDIUM = 1  # 0x01: Medium
@@ -160,11 +173,13 @@ class GOPRO_FIELD_OF_VIEW():
     GOPRO_FIELD_OF_VIEW__END = 3  #
 
 
+## @ingroup GoProConstants
 class GOPRO_VIDEO_SETTINGS_FLAGS():
     GOPRO_VIDEO_SETTINGS_TV_MODE = 1  # 0 = NTSC 1 = PAL
     GOPRO_VIDEO_SETTINGS_FLAGS__END = 2  #
 
 
+## @ingroup GoProConstants
 class GOPRO_PHOTO_RESOLUTION():
     GOPRO_PHOTO_RESOLUTION_5MP_MEDIUM = 0  # 5MP Medium
     GOPRO_PHOTO_RESOLUTION_7MP_MEDIUM = 1  # 7MP Medium
@@ -174,6 +189,7 @@ class GOPRO_PHOTO_RESOLUTION():
     GOPRO_PHOTO_RESOLUTION__END = 5  #
 
 
+## @ingroup GoProConstants
 class GOPRO_PROTUNE_WHITE_BALANCE():
     GOPRO_PROTUNE_WHITE_BALANCE_AUTO = 0  # Auto
     GOPRO_PROTUNE_WHITE_BALANCE_3000K = 1  # 3000K
@@ -183,12 +199,14 @@ class GOPRO_PROTUNE_WHITE_BALANCE():
     GOPRO_PROTUNE_WHITE_BALANCE__END = 5  #
 
 
+## @ingroup GoProConstants
 class GOPRO_PROTUNE_COLOUR():
     GOPRO_PROTUNE_COLOUR_STANDARD = 0  # Auto
     GOPRO_PROTUNE_COLOUR_NEUTRAL = 1  # Neutral
     GOPRO_PROTUNE_COLOUR__END = 2  #
 
 
+## @ingroup GoProConstants
 class GOPRO_PROTUNE_GAIN():
     GOPRO_PROTUNE_GAIN_400 = 0  # ISO 400
     GOPRO_PROTUNE_GAIN_800 = 1  # ISO 800 (Only Hero 4)
@@ -198,6 +216,7 @@ class GOPRO_PROTUNE_GAIN():
     GOPRO_PROTUNE_GAIN__END = 5  #
 
 
+## @ingroup GoProConstants
 class GOPRO_PROTUNE_SHARPNESS():
     GOPRO_PROTUNE_SHARPNESS_LOW = 0  # Low Sharpness
     GOPRO_PROTUNE_SHARPNESS_MEDIUM = 1  # Medium Sharpness
@@ -205,6 +224,7 @@ class GOPRO_PROTUNE_SHARPNESS():
     GOPRO_PROTUNE_SHARPNESS__END = 3  #
 
 
+## @ingroup GoProConstants
 class GOPRO_PROTUNE_EXPOSURE():
     GOPRO_PROTUNE_EXPOSURE_NEG_5_0 = 0  # -5.0 EV (Hero 3+ Only)
     GOPRO_PROTUNE_EXPOSURE_NEG_4_5 = 1  # -4.5 EV (Hero 3+ Only)
@@ -230,12 +250,14 @@ class GOPRO_PROTUNE_EXPOSURE():
     GOPRO_PROTUNE_EXPOSURE__END = 21  #
 
 
+## @ingroup GoProConstants
 class GOPRO_CHARGING():
     GOPRO_CHARGING_DISABLED = 0  # Charging disabled
     GOPRO_CHARGING_ENABLED = 1  # Charging enabled
     GOPRO_CHARGING__END = 2  #
 
 
+## @ingroup GoProConstants
 class GOPRO_MODEL():
     GOPRO_MODEL_UNKNOWN = 0  # Unknown gopro model
     GOPRO_MODEL_HERO_3_PLUS_SILVER = 1  # Hero 3+ Silver (HeroBus not supported by GoPro)
@@ -245,6 +267,7 @@ class GOPRO_MODEL():
     GOPRO_MODEL__END = 5  #
 
 
+## @ingroup GoProConstants
 class GOPRO_BURST_RATE():
     GOPRO_BURST_RATE_3_IN_1_SECOND = 0  # 3 Shots / 1 Second
     GOPRO_BURST_RATE_5_IN_1_SECOND = 1  # 5 Shots / 1 Second

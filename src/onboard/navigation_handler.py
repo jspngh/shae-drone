@@ -7,15 +7,16 @@ from solo import Solo
 from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue, logformat, dateformat
 
 
+## @ingroup Onboard
+# @brief This class will take care of packets of the 'navigation' message type
 class NavigationHandler():
-    """
-    This class will take care of packets of the 'navigation' message type
-    """
     def __init__(self, solo, queue, navigation_thread, logging_level):
         """
-        :type solo: Solo
-        :type queue: WayPointQueue
-        :type navigation_thread: NavigationThread
+        Initiate the handler
+
+        @type solo: Solo
+        @type queue: WayPointQueue
+        @type navigation_thread: NavigationThread
         """
         self.packet = None
         self.message = None
@@ -26,7 +27,7 @@ class NavigationHandler():
         # set up logging
         self.logger = logging.getLogger("Navigation Handler")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
-        handler = logging.StreamHandler(stream=sys.stdout)  # TODO
+        handler = logging.StreamHandler(stream=sys.stdout)  # TODO make logging to file possible
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.logger.addHandler(handler)
@@ -78,7 +79,12 @@ class NavigationHandler():
 
         self.logger.info("Arming Solo...")
         self.solo.arm()
-        self.solo.takeoff()
+        retval = self.solo.takeoff()
+        if retval == -1:
+            # takeoff failed
+            # we will try 1 more time
+            self.solo.arm()
+            retval = self.solo.takeoff()
 
     def handle_stop_packet(self):
         self.solo.brake()
@@ -97,15 +103,18 @@ class NavigationHandler():
         self.solo.land()
 
 
+## @ingroup Onboard
 class NavigationThread (threading.Thread):
     """
-    This class will run in another thread
-    and fly to the waypoints in the waypoint_queue
+    This class will run in another thread and fly to the waypoints in the waypoint_queue
     """
+
     def __init__(self, solo, waypoint_queue, logging_level):
         """
-        :type solo: Solo
-        :type waypoint_queue: WayPointQueue
+        Initiate the thread
+
+        @type solo: Solo
+        @type waypoint_queue: WayPointQueue
         """
         threading.Thread.__init__(self)
         self.solo = solo
@@ -137,6 +146,7 @@ class NavigationThread (threading.Thread):
 
         if self.rth and not self.waypoint_queue.is_empty():
             home = self.waypoint_queue.remove_waypoint()
+            self.logger.debug("I am coming home")
             self.solo.visit_waypoint(home)
             self.solo.land()
 

@@ -6,6 +6,7 @@ import struct
 import socket
 import getopt
 import logging
+import dronekit
 from dronekit import connect
 
 from solo import Solo
@@ -15,27 +16,43 @@ from status_handler import StatusHandler
 from global_classes import MessageCodes, WayPointQueue, logformat, dateformat
 
 
+## @ingroup Onboard
+# @brief The ControlModule class.
 class ControlModule():
     def __init__(self, logger, log_level, SIM):
         """
-        :type logger: logging.Logger
-        :type SIM: bool
+        Initiate the control module
+
+        @type logger: logging.Logger
+        @type SIM: bool
         """
         self.logger = logger
         self.log_level = log_level
         self.quit = False
 
-        if SIM:
-            self.vehicle = connect('tcp:127.0.0.1:5760', wait_ready=True)
-            self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
-        else:
-            self.vehicle = connect('udpin:0.0.0.0:14550', wait_ready=True)
-            self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
+        connection_succeeded = False
+        attemps = 5
+        while not connection_succeeded:
+            try:
+                if SIM:
+                    self.vehicle = dronekit.connect('tcp:127.0.0.1:5760', wait_ready=True)
+                    self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
+                    connection_succeeded = True
+                else:
+                    self.vehicle = dronekit.connect('udpin:0.0.0.0:14550', wait_ready=True)
+                    self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
+                    connection_succeeded = True
+            except dronekit.APIException:
+                self.logger.debug("connecting to dronekit failed")
+                attemps -= 1
+                if attemps == 0:
+                    exit(1)
 
         # handle signals to exit gracefully
         signal.signal(signal.SIGTERM, self.signal_handler)
         signal.signal(signal.SIGINT, self.signal_handler)
 
+        # Initiate to None in order to be able to compare to None later
         self.nav_thread = None
         self.nav_handler = None
         self.stat_handler = None
@@ -51,6 +68,9 @@ class ControlModule():
         try:
             self.unix_socket.bind("/tmp/uds_control")
             self.unix_socket.listen(2)
+            # TODO: see if this gives issues when run on the Solo
+            # if so, only do this when simulating
+            self.unix_socket.settimeout(2.0)
 
             self.nav_thread = NavigationThread(solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
             self.nav_handler = NavigationHandler(self.solo, self.waypoint_queue, self.nav_thread, logging_level=self.log_level)
@@ -82,10 +102,10 @@ class ControlModule():
                 packet = json.loads(raw)  # parse the Json we received
                 if 'message_type' not in packet:  # every packet should have a MessageType field
                     self.logger.info("every packet should have a message_type field")
-                    raise ValueError
+                    raise ValueError("Packet has no message_type field")
                 if 'message' not in packet:  # every packet should have a Message field
                     self.logger.info("every packet should have a message field")
-                    raise ValueError
+                    raise ValueError("Packet has no message field")
 
                 message_type = packet['message_type']  # the 'message type' attribute tells us to which class of packet this packet belongs
                 message = packet['message']           # the 'message' attribute tells what packet it is, within it's class
@@ -120,13 +140,13 @@ class ControlModule():
                     raise ValueError
 
             except socket.error, msg:
-                self.logger.debug("Error in control module: {0}, quitting".format(msg))
-                self.close()
+                pass
 
             except ValueError, msg:
-                # TODO: handle error
                 self.logger.debug("Value error was raised: {0}".format(msg))
                 client.send(struct.pack(">I", MessageCodes.ERR))
+
+        self.unix_socket.close()
 
     def close(self):
         if not self.quit:
