@@ -57,11 +57,42 @@ class Solo:
         self.logger.info("Control granted")
         if self.vehicle.armed is False:
             # Don't let the user try to arm until autopilot is ready
-            self.logger.info("Waiting for vehicle to initialise...")
+            self.logger.debug("Waiting for vehicle to initialise...")
             while not self.vehicle.is_armable:
                 time.sleep(1)
             self.vehicle.armed = True
             self.logger.info("Vehicle Armed")
+
+    # takeoff - takeoff to some altitude, needs armed status - params: meters
+    def takeoff(self):
+        if self.vehicle.mode != 'GUIDED':
+            self.logger.error("DroneDirectError: 'takeoff({0})' was not executed. \
+                              Vehicle was not in GUIDED mode".format(self.height))
+            return
+
+        while not self.vehicle.armed:
+            self.logger.debug("Waiting for arming...")
+            time.sleep(1)
+
+        self.logger.info("The Solo is now taking off")
+        if self.vehicle.system_status != SystemStatus('STANDBY'):
+            self.logger.debug("Already airborne")
+            return
+        self.vehicle.simple_takeoff(self.height)
+        # Wait until the vehicle reaches a safe height
+        # Sometimes the Solo will switch out of GUIDED mode during takeoff
+        # If this happens, we will return -1 so we can try again
+        while self.vehicle.mode == 'GUIDED':
+            if self.vehicle.location.global_relative_frame.alt >= self.height * 0.95:  # Trigger just below target alt.
+                self.logger.info("The Solo is now ready to fly")
+                return 0
+            time.sleep(1)
+        self.logger.error("DroneDirectError: 'takeoff({0})' was interrupted. \
+                          Vehicle was swicthed out of GUIDED mode".format(self.height))
+        return -1
+
+    def halt(self):
+        self.is_halted = True
 
     # brake - Stop the solo moving
     def brake(self):
@@ -71,9 +102,6 @@ class Solo:
         self.vehicle.flush()
         self.vehicle.mode = mode
 
-    def halt(self):
-        self.is_halted = True
-
     # land - Land the solo moving
     def land(self):
         self.vehicle.mode = VehicleMode("LAND")
@@ -82,40 +110,44 @@ class Solo:
             time.sleep(0.1)
         self.logger.info("Landing Solo...")
 
-    # takeoff - takeoff to some altitude, needs armed status - params: meters
-    def takeoff(self):
-        if self.vehicle.mode != 'GUIDED':
-            self.logger.error('\033[91m' + "DroneDirectError: 'takeoff({0})' was not executed. \
-                              Vehicle was not in GUIDED mode".format(self.height) + '\033[0m')
-            return
+    def visit_waypoint(self, waypoint):
+        """
+        Flies to the coordinates of the waypoint
+        This function only returns when the solo has visited the waypoint
 
-        while not self.vehicle.armed:
-            print " Waiting for arming..."
-            time.sleep(1)
+        @type waypoint: WayPoint
+        """
+        latlon_to_m = 1.113195e5   # converts lat/lon to meters
 
-        print "Taking off..."
-        if self.vehicle.system_status != SystemStatus('STANDBY'):
-            self.logger.info("Already airborne")
-            return
-        self.vehicle.simple_takeoff(self.height)
-        # Wait until the vehicle reaches a safe height before processing the goto (otherwise the command
-        #  after Vehicle.simple_takeoff will execute immediately).
-        while self.vehicle.mode == 'GUIDED':
-            if self.vehicle.location.global_relative_frame.alt >= self.height * 0.95:  # Trigger just below target alt.
-                self.logger.info("Takeoff Complete")
+        location = LocationGlobalRelative(lat=waypoint.location.latitude, lon=waypoint.location.longitude, alt=self.height)
+        self.vehicle.simple_goto(location=location, airspeed=self.speed)
+
+        while self.vehicle.mode == "GUIDED":
+            veh_loc = self.vehicle.location.global_relative_frame
+            diff_lat_m = (location.lat - veh_loc.lat) * latlon_to_m
+            diff_lon_m = (location.lon - veh_loc.lon) * latlon_to_m
+            diff_alt_m = location.alt - veh_loc.alt
+            dist_xyz = math.sqrt(diff_lat_m**2 + diff_lon_m**2 + diff_alt_m**2)
+            if dist_xyz > self.distance_threshold and not self.is_halted:
+                time.sleep(0.5)
+            else:
+                if not self.is_halted:
+                    self.logger.info("Solo arrived at waypoint")
+                else:
+                    self.logger.info("Solo was halted")
+                    self.is_halted = False  # reset the self.is_halted attribute
                 return
-            time.sleep(1)
-        self.logger.error('\033[93m' + "DroneDirectError: 'takeoff({0})' was interrupted. \
-                          Vehicle was swicthed out of GUIDED mode".format(self.height) + '\033[0m')
 
     # point - Point the copter in a direction
     def point(self, degrees, relative=True):
-
+        """
+        This won't be used in this project, but might prove useful for future uses
+        """
         if self.fence_breach:
             raise StandardError("You are outside of the fence")
         if self.vehicle.mode != 'GUIDED':
-            self.logger.error('\033[91m' + "DroneDirectError: 'point({0})' was not executed. \
-                              Vehicle was not in GUIDED mode".format(degrees) + '\033[0m')
+            self.logger.error("DroneDirectError: 'point({0})' was not executed. \
+                              Vehicle was not in GUIDED mode".format(degrees))
             return
         # limit our update rate
         if (time.time() - self.last_send_point) < 1.0 / self.update_rate:
@@ -147,11 +179,14 @@ class Solo:
 
     # step_left - Send the solo left some distance - params: distance meters
     def translate(self, x=0, y=0, z=0, wait_for_arrival=False):
+        """
+        This won't be used in this project, but might prove useful for future uses
+        """
         if self.fence_breach:
             raise StandardError("You are outside of the fence")
         if self.vehicle.mode != 'GUIDED':
-            self.logger.error('\033[91m' + "DroneDirectError: 'translate({0},{1},{2})' was not executed. \
-                              Vehicle was not in GUIDED mode".format(x, y, z) + '\033[0m')
+            self.logger.error("DroneDirectError: 'translate({0},{1},{2})' was not executed. \
+                              Vehicle was not in GUIDED mode".format(x, y, z))
             return
         # limit our update rate
         if (time.time() - self.last_send_translate) < 1.0 / self.update_rate:
@@ -198,33 +233,8 @@ class Solo:
                 if dist_xyz < self.distance_threshold:
                     self.logger.info("Arrived")
                     return
-            self.logger.error('\033[93m' + "DroneDirectError: 'translate({0},{1},{2})' was interrupted. \
-                              Vehicle was switched out of GUIDED mode".format(x, y, z) + '\033[0m')
-
-    def visit_waypoint(self, waypoint):
-        """
-        @type waypoint: WayPoint
-        """
-        latlon_to_m = 1.113195e5   # converts lat/lon to meters
-
-        location = LocationGlobalRelative(lat=waypoint.location.latitude, lon=waypoint.location.longitude, alt=self.height)
-        self.vehicle.simple_goto(location=location, airspeed=self.speed)
-
-        while self.vehicle.mode == "GUIDED":
-            veh_loc = self.vehicle.location.global_relative_frame
-            diff_lat_m = (location.lat - veh_loc.lat) * latlon_to_m
-            diff_lon_m = (location.lon - veh_loc.lon) * latlon_to_m
-            diff_alt_m = location.alt - veh_loc.alt
-            dist_xyz = math.sqrt(diff_lat_m**2 + diff_lon_m**2 + diff_alt_m**2)
-            if dist_xyz > self.distance_threshold and not self.is_halted:
-                time.sleep(0.5)
-            else:
-                if not self.is_halted:
-                    self.logger.info("Solo arrived at waypoint")
-                else:
-                    self.logger.info("Solo was halted")
-                    self.is_halted = False  # reset the self.is_halted attribute
-                return
+            self.logger.error("DroneDirectError: 'translate({0},{1},{2})' was interrupted. \
+                              Vehicle was switched out of GUIDED mode".format(x, y, z))
 
     def get_battery_level(self):
         batt = self.vehicle.battery

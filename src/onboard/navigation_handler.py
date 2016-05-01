@@ -79,7 +79,12 @@ class NavigationHandler():
 
         self.logger.info("Arming Solo...")
         self.solo.arm()
-        self.solo.takeoff()
+        retval = self.solo.takeoff()
+        if retval == -1:
+            # takeoff failed
+            # we will try one more time
+            self.solo.arm()
+            retval = self.solo.takeoff()
 
     def handle_stop_packet(self):
         self.solo.brake()

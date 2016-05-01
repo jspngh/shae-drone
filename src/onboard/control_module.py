@@ -6,6 +6,7 @@ import struct
 import socket
 import getopt
 import logging
+import dronekit
 from dronekit import connect
 
 from solo import Solo
@@ -29,12 +30,24 @@ class ControlModule():
         self.log_level = log_level
         self.quit = False
 
-        if SIM:
-            self.vehicle = connect('tcp:127.0.0.1:5760', wait_ready=True)
-            self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
-        else:
-            self.vehicle = connect('udpin:0.0.0.0:14550', wait_ready=True)
-            self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
+        connection_succeeded = False
+        attemps = 5
+        while not connection_succeeded:
+            try:
+                if SIM:
+                    self.vehicle = dronekit.connect('tcp:127.0.0.1:5760', wait_ready=True)
+                    self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
+                    connection_succeeded = True
+                else:
+                    self.vehicle = dronekit.connect('udpin:0.0.0.0:14550', wait_ready=True)
+                    self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
+                    connection_succeeded = True
+            except dronekit.APIException:
+                self.logger.debug("connecting to dronekit failed")
+                attemps -= 1
+                if attemps == 0:
+                    self.signal_fail()
+                    exit(1)
 
         # handle signals to exit gracefully
         signal.signal(signal.SIGTERM, self.signal_handler)
@@ -151,6 +164,14 @@ class ControlModule():
         cm_rdy = os.path.join(home_dir, '.shae', 'cm_ready')
         with open(cm_rdy, 'a'):
             os.utime(cm_rdy, None)
+
+    def signal_fail(self):
+        home_dir = os.path.expanduser('~')
+        if not os.path.exists(os.path.join(home_dir, '.shae')):
+            os.mkdir(os.path.join(home_dir, '.shae'))
+        cm_fail = os.path.join(home_dir, '.shae', 'cm_fail')
+        with open(cm_fail, 'a'):
+            os.utime(cm_fail, None)
 
 
 def print_help():
