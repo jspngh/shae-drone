@@ -51,7 +51,7 @@ class Simulator:
         self.sitl = SITL()
         self.sitl.download('solo', '1.2.0', verbose=True)
         sitl_args = ['solo', '--home=51.011447,3.711648,5,0']
-        self.sitl.launch(sitl_args, await_ready=True, restart=True)
+        self.sitl.launch(sitl_args, await_ready=True, restart=True, verbose=True)
 
         #############################################################################################################
         # This is old code from when the onboard and simulator code were no modules yet

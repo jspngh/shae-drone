@@ -67,21 +67,21 @@ class Server():
         self.broadcast_thread.start()
         while not self.quit:
             try:
-                self.logger.debug("Waiting for connection in server")
+                self.logger.debug("waiting for connection in server")
                 client, address = self.serversocket.accept()
                 self.broadcast_thread.stop_thread()
                 length = client.recv(4)
                 if length is not None:
                     buffersize = struct.unpack(">I", length)[0]
                 raw = client.recv(buffersize)
-                self.logger.info("Server received a message:")
+                self.logger.info("server received a message:")
                 self.logger.info(raw)
                 control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 control_thread = ControlThread(raw, control_socket=control_socket, client_socket=client,
                                                heartbeat_thread=self.heartbeat_thread, logger=self.logger)
                 control_thread.start()
             except socket.error:
-                self.logger.debug("No connection was made")
+                self.logger.debug("no connection was made")
                 pass
         self.serversocket.close()
 
