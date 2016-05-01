@@ -13,18 +13,21 @@ from solo import Solo
 from navigation_handler import NavigationHandler, NavigationThread
 from settings_handler import SettingsHandler
 from status_handler import StatusHandler
-from global_classes import MessageCodes, WayPointQueue, logformat, dateformat
+from global_classes import MessageCodes, WayPointQueue, logformat, dateformat, print_help
 
 
 ## @ingroup Onboard
 # @brief The ControlModule class.
 class ControlModule():
-    def __init__(self, logger, log_level, SIM):
+    def __init__(self, logger, log_level, SIM, log_type='console', filename=''):
         """
         Initiate the control module
 
         @type logger: logging.Logger
         @type SIM: bool
+
+        @param log_type: log to stdout ('console') or to a file ('file')
+        @param filename: the name of the file if log_type is 'file'
         """
         self.logger = logger
         self.log_level = log_level
@@ -40,14 +43,15 @@ class ControlModule():
                     connection_succeeded = True
                 else:
                     self.vehicle = dronekit.connect('udpin:0.0.0.0:14550', wait_ready=True)
-                    self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
+                    self.solo = Solo(vehicle=self.vehicle, logging_level=log_level, log_type=log_type, filename=filename)
                     connection_succeeded = True
             except dronekit.APIException:
-                self.logger.debug("connecting to dronekit failed")
                 attemps -= 1
                 if attemps == 0:
+                    self.logger.error("connecting to dronekit failed")
                     self.signal_fail()
                     exit(1)
+                self.logger.debug("re-attempting to connect to dronekit")
 
         # handle signals to exit gracefully
         signal.signal(signal.SIGTERM, self.signal_handler)
@@ -73,15 +77,15 @@ class ControlModule():
             # if so, only do this when simulating
             self.unix_socket.settimeout(2.0)
 
-            self.nav_thread = NavigationThread(solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level)
-            self.nav_handler = NavigationHandler(self.solo, self.waypoint_queue, self.nav_thread, logging_level=self.log_level)
-            self.stat_handler = StatusHandler(self.solo, self.waypoint_queue, logging_level=self.log_level)
-            self.setting_handler = SettingsHandler(self.solo, logging_level=self.log_level)
+            self.nav_thread = NavigationThread(solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level, log_type=log_type, filename=filename)
+            self.nav_handler = NavigationHandler(self.solo, self.waypoint_queue, self.nav_thread, logging_level=self.log_level, log_type=log_type, filename=filename)
+            self.stat_handler = StatusHandler(self.solo, self.waypoint_queue, logging_level=self.log_level, log_type=log_type, filename=filename)
+            self.setting_handler = SettingsHandler(self.solo, logging_level=self.log_level, log_type=log_type, filename=filename)
 
-            self.logger.debug("Starting Navigation Thread")
+            self.logger.info("starting the navigation thread")
             self.nav_thread.start()
         except socket.error, msg:
-            self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
+            self.logger.debug("could not bind to port: {0}, quitting".format(msg))
             self.close()
 
         self.signal_ready()
@@ -102,10 +106,10 @@ class ControlModule():
                 raw = client.recv(buffersize)
                 packet = json.loads(raw)  # parse the Json we received
                 if 'message_type' not in packet:  # every packet should have a MessageType field
-                    self.logger.info("every packet should have a message_type field")
+                    self.logger.error("every packet should have a message_type field")
                     raise ValueError("Packet has no message_type field")
                 if 'message' not in packet:  # every packet should have a Message field
-                    self.logger.info("every packet should have a message field")
+                    self.logger.error("every packet should have a message field")
                     raise ValueError("Packet has no message field")
 
                 message_type = packet['message_type']  # the 'message type' attribute tells us to which class of packet this packet belongs
@@ -128,14 +132,14 @@ class ControlModule():
                     response = self.setting_handler.handle_packet(packet, message)
                     # if we got a response, that means we need to start sending heartbeats
                     if response is not None and isinstance(response, tuple):
-                        self.logger.info("Settings heartbeat configuration")
+                        self.logger.info("settings heartbeat configuration")
                         client.send(struct.pack(">I", MessageCodes.START_HEARTBEAT))
                         client.send(struct.pack(">I", len(response[0])))
                         client.send(response[0])
                         client.send(struct.pack(">I", len(response[1])))
                         client.send(response[1])
                     else:
-                        self.logger.info("Returning ack")
+                        self.logger.debug("returning ack")
                         client.send(struct.pack(">I", MessageCodes.ACK))
                 else:
                     raise ValueError
@@ -144,17 +148,18 @@ class ControlModule():
                 pass
 
             except ValueError, msg:
-                self.logger.debug("Value error was raised: {0}".format(msg))
+                self.logger.debug("value error was raised: {0}".format(msg))
                 client.send(struct.pack(">I", MessageCodes.ERR))
 
         self.unix_socket.close()
 
     def close(self):
         if not self.quit:
+            self.logger.info("the control module is exiting")
             self.quit = True
             if self.nav_thread is not None:
                 self.nav_thread.stop_thread()
-            self.logger.debug("closing vehicle")
+            self.logger.debug("closing dronekit vehicle")
             self.vehicle.close()
 
     def signal_ready(self):
@@ -172,20 +177,6 @@ class ControlModule():
         cm_fail = os.path.join(home_dir, '.shae', 'cm_fail')
         with open(cm_fail, 'a'):
             os.utime(cm_fail, None)
-
-
-def print_help():
-    print 'Usage: control_module.py -s -l <logging_level> -t <logging_type> -f <outputfile>'
-    print 'Options:'
-    print '  -l --level: \t\t Specify the logging level\n' \
-          '\t\t\t The available options are \'debug\', \'info\', \'warning\' and \'critical\'\n' \
-          '\t\t\t This defaults to \'critical\''
-    print '  -t --type: \t\t Specify the logging type, available options are:\n' \
-          '\t\t\t   \'console\', which prints the logs to the console, this is the default\n' \
-          '\t\t\t   \'file\', which prints the logs to a file, a filename needs to be specified'
-    print '  -f --file: \t\t Specify the name of the logfile'
-    print '  -s --simulate: \t\t Indicate that a simulated vehicle is used'
-    print '  -h --help: \t\t Display this information'
 
 
 if __name__ == '__main__':
@@ -223,7 +214,7 @@ if __name__ == '__main__':
         elif opt in ("-s", "--simulate"):
             is_simulation = True
         elif opt in ("-h", "--help"):
-            print_help()
+            print_help('control_module.py')
             sys.exit(0)
 
     # set up logging
@@ -239,5 +230,5 @@ if __name__ == '__main__':
     control_logger.setLevel(log_level)
 
     # set up control module
-    control_module = ControlModule(control_logger, log_level, is_simulation)
+    control_module = ControlModule(control_logger, log_level, is_simulation, log_type, log_file)
     control_module.run()

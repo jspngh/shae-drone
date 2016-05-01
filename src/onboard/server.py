@@ -9,7 +9,7 @@ import getopt
 import logging
 import threading
 
-from global_classes import MessageCodes, logformat, dateformat
+from global_classes import MessageCodes, logformat, dateformat, print_help
 
 
 ## @ingroup Onboard
@@ -68,15 +68,14 @@ class Server():
         while not self.quit:
             try:
                 # self.logger.debug("Waiting for connection in server")
-
                 client, address = self.serversocket.accept()
                 self.broadcast_thread.stop_thread()
                 length = client.recv(4)
                 if length is not None:
                     buffersize = struct.unpack(">I", length)[0]
                 raw = client.recv(buffersize)
-                self.logger.info("server received a message:")
-                self.logger.info(raw)
+                self.logger.info("the server received a message")
+                self.logger.debug(raw)
                 control_socket = socket.socket(socket.AF_UNIX, socket.SOCK_STREAM)
                 control_thread = ControlThread(raw, control_socket=control_socket, client_socket=client,
                                                heartbeat_thread=self.heartbeat_thread, logger=self.logger)
@@ -88,7 +87,7 @@ class Server():
 
     def close(self):
         self.quit = True
-        self.logger.debug("Stopping the server")
+        self.logger.info("the server is exiting")
         if self.heartbeat_thread is not None:
             self.heartbeat_thread.stop_thread()
         if self.broadcast_thread is not None:
@@ -115,14 +114,14 @@ class ControlThread (threading.Thread):
         self.logger = logger
 
     def run(self):
-        self.logger.debug("running controlthread")
+        self.logger.info("running a control-thread to process a message")
         self.control_socket.connect("/tmp/uds_control")
         self.control_socket.send(struct.pack(">I", len(self.data)))
         self.control_socket.send(self.data)
 
         raw_response = self.control_socket.recv(4)
-        self.logger.debug("got a response in controlthread")
         status_code = struct.unpack(">I", raw_response)[0]
+        self.logger.info("the message was processed")
         self.logger.debug("response has statuscode {0}".format(status_code))
         if status_code == MessageCodes.ACK or status_code == MessageCodes.ERR:  # let the client know if request succeeded or failed
             response = bytearray(raw_response)
@@ -180,8 +179,9 @@ class HeartBeatThread (threading.Thread):
         if self.workstation_ip is None or self.workstation_port is None:
             return
 
-        self.logger.debug(self.workstation_ip)
-        self.logger.debug(self.workstation_port)
+        self.logger.debug("heartbeat IP address: {0}".format(self.workstation_ip))
+        self.logger.debug("heartbeat port: {0}".format(self.workstation_port))
+        self.logger.info("hearbeats are being sent to the workstation")
 
         while not self.quit:
             workstation_socket = socket.socket(socket.AF_INET,      # Internet
@@ -210,24 +210,24 @@ class HeartBeatThread (threading.Thread):
                         workstation_socket.send(struct.pack(">H", len(response) + 4))
                         workstation_socket.send(response_length + response)
                     except socket.error:
-                        self.logger.debug("Could not connect to the workstation")
+                        self.logger.debug("could not connect to the workstation")
                         self.stop_thread()
 
                 # close the connection
                 control_socket.close()
                 workstation_socket.close()
             except socket.error, msg:
-                self.logger.debug("Socket error: {0}".format(msg))
+                self.logger.debug("socket error: {0}".format(msg))
 
             # sleep 500ms before requesting another heartbeat
-            time.sleep(1)  # time.sleep(0.5)
+            time.sleep(1)
 
     def configure(self, host, port):
         self.workstation_ip = host
         self.workstation_port = port
 
     def stop_thread(self):
-        self.logger.debug("Stopping heartbeat thread")
+        self.logger.info("stopping the heartbeat-thread")
         self.quit = True
 
 
@@ -277,12 +277,12 @@ class BroadcastThread(threading.Thread):
             if os.path.exists(cm_rdy):
                 cm_rdy_mod_time = os.path.getmtime(cm_rdy)
                 if (curr_time - cm_rdy_mod_time < 15):
-                    self.logger.info("The control module is now ready")
+                    self.logger.info("the control module is now ready")
                     return True
             if os.path.exists(cm_fail):
                 cm_fail_mod_time = os.path.getmtime(cm_fail)
                 if (curr_time - cm_fail_mod_time < 15):
-                    self.logger.info("The control module has failed to start up properly")
+                    self.logger.info("the control module has failed to start up properly")
                     return False
             time.sleep(2)
 
@@ -302,16 +302,18 @@ class BroadcastThread(threading.Thread):
         bcsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
         bcsocket.settimeout(10)
         bcsocket.bind(('', 0))  # OS will select available port
+
+        self.logger.info("hello messages are being sent to the workstation")
         while not self.quit:
             bcsocket.sendto(hello_json, (self.broadcast_address, self.helloPort))
-            self.logger.debug("Broadcasting hello to " + str(self.broadcast_address) + ":" + str(self.helloPort))
+            self.logger.debug("broadcasting hello to " + str(self.broadcast_address) + ":" + str(self.helloPort))
             try:
                 raw_response, address = bcsocket.recvfrom(1024)
                 response = json.loads(raw_response)
                 if 'message_type' in response:
                     if response['message_type'] == 'hello':
                         self.quit = True
-                        self.logger.debug("Reply received, stopping broadcast")
+                        self.logger.debug("reply received, stopping broadcast")
             except socket.timeout:
                 pass
 
@@ -333,34 +335,20 @@ class BroadcastThread(threading.Thread):
         bcsocket.bind(('', 0))  # OS will select available port
         while not self.quit:
             bcsocket.sendto(fail_json, (self.broadcast_address, self.helloPort))
-            self.logger.debug("Broadcasting fail message to " + str(self.broadcast_address) + ":" + str(self.helloPort))
+            self.logger.debug("broadcasting fail message to " + str(self.broadcast_address) + ":" + str(self.helloPort))
             try:
                 raw_response, address = bcsocket.recvfrom(1024)
                 response = json.loads(raw_response)
                 if 'message_type' in response:
                     if response['message_type'] == 'hello':
                         self.quit = True
-                        self.logger.debug("Reply received, stopping broadcast")
+                        self.logger.debug("reply received, stopping broadcast")
             except socket.timeout:
                 pass
 
     def stop_thread(self):
-        self.logger.debug("Stopping broadcast thread")
+        self.logger.info("stopping the broadcast-thread")
         self.quit = True
-
-
-def print_help():
-    print 'Usage: server.py -s -l <logging_level> -t <logging_type> -f <outputfile>'
-    print 'Options:'
-    print '  -l --level: \t\t Specify the logging level\n' \
-          '\t\t\t The available options are \'debug\', \'info\', \'warning\' and \'critical\'\n' \
-          '\t\t\t This defaults to \'critical\''
-    print '  -t --type: \t\t Specify the logging type, available options are:\n' \
-          '\t\t\t   \'console\', which prints the logs to the console, this is the default\n' \
-          '\t\t\t   \'file\', which prints the logs to a file, a filename needs to be specified'
-    print '  -f --file: \t\t Specify the name of the logfile'
-    print '  -s --simulate: \t\t Indicate that a simulated vehicle is used'
-    print '  -h --help: \t\t Display this information'
 
 
 if __name__ == '__main__':
@@ -397,7 +385,7 @@ if __name__ == '__main__':
         elif opt in ("-s", "--simulate"):
             is_simulation = True
         elif opt in ("-h", "--help"):
-            print_help()
+            print_help('server.py')
             sys.exit(0)
 
     # set up logging

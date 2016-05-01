@@ -8,11 +8,14 @@ from global_classes import logformat, dateformat
 ## @ingroup Onboard
 # @brief This class will take care of packets of the 'settings' message type
 class SettingsHandler():
-    def __init__(self, solo, logging_level):
+    def __init__(self, solo, logging_level, log_type='console', filename=''):
         """
         Initiate the handler
 
         @type solo: Solo
+
+        @param log_type: log to stdout ('console') or to a file ('file')
+        @param filename: the name of the file if log_type is 'file'
         """
         self.packet = None
         self.message = None
@@ -21,7 +24,10 @@ class SettingsHandler():
         # set up logging
         self.settings_logger = logging.getLogger("Status Handler")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
-        handler = logging.StreamHandler(stream=sys.stdout)  # TODO make logging to file possible
+        if log_type == 'console':
+            handler = logging.StreamHandler(stream=sys.stdout)
+        elif log_type == 'file':
+            handler = logging.FileHandler(filename=filename)
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.settings_logger.addHandler(handler)
@@ -31,17 +37,17 @@ class SettingsHandler():
         self.packet = packet
         self.message = message
         if (self.message == "workstation_config"):  # set the workstation configuration and start sending heartbeats
-            self.settings_logger.info("Extracting configuration")
+            self.settings_logger.info("the drone will be configured to send heartbeats to the workstation")
             config = self.packet['configuration']
             ip = config['ip_address']
             port = config['port']  # keep the port as string for now
-            self.settings_logger.info("IP: {0}".format(ip))
-            self.settings_logger.info("Port: {0}".format(port))
+            self.settings_logger.debug("parsed IP: {0}".format(ip))
+            self.settings_logger.debug("parsed port: {0}".format(port))
             return (ip, port)
         else:                                       # this is an array with the attributes that were required
             if not isinstance(self.message, list):  # if it is not a list, something went wrong
-                self.settings_logger.warning("Message not a list")
-                raise ValueError("FormatError")
+                self.settings_logger.error("the message should be a list")
+                raise ValueError("FormatError: list expected")
             for setting_request in self.message:
                 if (setting_request['key'] == "speed"):
                     value = setting_request['value']

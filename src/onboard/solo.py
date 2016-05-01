@@ -11,11 +11,14 @@ from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logfo
 
 ## @ingroup Onboard
 class Solo:
-    def __init__(self, vehicle, height=4, speed=5, update_rate=15, logging_level=logging.CRITICAL):
+    def __init__(self, vehicle, height=4, speed=5, update_rate=15, logging_level=logging.CRITICAL, log_type='console', filename=''):
         """
         @type vehicle: Vehicle
+
+        @param log_type: log to stdout ('console') or to a file ('file')
+        @param filename: the name of the file if log_type is 'file'
         """
-        self.goproManager = GoProManager(logging_level=logging_level)
+        self.goproManager = GoProManager(logging_level=logging_level, log_type=log_type, filename=filename)
         self.vehicle = vehicle
         self.is_halted = False  # when this becomes 'True', the solo should stop visiting waypoints
 
@@ -31,7 +34,7 @@ class Solo:
         self.last_send_translate = 0
 
         self.distance_threshold = 1.0
-        self.update_rate = update_rate
+        self.update_rate = update_rate  # this attribute is not used by any of the functions used in Project Shae
         self.height = height
         self.speed = speed
         self.camera_fps = None
@@ -42,7 +45,10 @@ class Solo:
         # set up self.logger
         self.logger = logging.getLogger("Solo")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
-        handler = logging.StreamHandler(stream=sys.stdout)
+        if log_type == 'console':
+            handler = logging.StreamHandler(stream=sys.stdout)
+        elif log_type == 'file':
+            handler = logging.FileHandler(filename=filename)
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.logger.addHandler(handler)
@@ -54,39 +60,40 @@ class Solo:
         self.vehicle.mode = VehicleMode("GUIDED")
         while self.vehicle.mode != "GUIDED":
             time.sleep(0.1)
-        self.logger.info("Control granted")
+        self.logger.debug("control granted")
         if self.vehicle.armed is False:
             # Don't let the user try to arm until autopilot is ready
-            self.logger.debug("Waiting for vehicle to initialise...")
+            self.logger.debug("waiting for vehicle to initialise...")
             while not self.vehicle.is_armable:
                 time.sleep(1)
             self.vehicle.armed = True
-            self.logger.info("Vehicle Armed")
+            self.logger.info("the solo is now armed")
 
     # takeoff - takeoff to some altitude, needs armed status - params: meters
     def takeoff(self):
         if self.vehicle.mode != 'GUIDED':
             self.logger.error("DroneDirectError: 'takeoff({0})' was not executed. \
                               Vehicle was not in GUIDED mode".format(self.height))
-            return
+            return -1
 
         while not self.vehicle.armed:
-            self.logger.debug("Waiting for arming...")
+            self.logger.debug("waiting for arming...")
             time.sleep(1)
 
-        self.logger.info("The Solo is now taking off")
         if self.vehicle.system_status != SystemStatus('STANDBY'):
-            self.logger.debug("Already airborne")
+            self.logger.debug("solo was already airborne")
             return
+
+        self.logger.info("the solo is now taking off")
         self.vehicle.simple_takeoff(self.height)
         # Wait until the vehicle reaches a safe height
-        # Sometimes the Solo will switch out of GUIDED mode during takeoff
-        # If this happens, we will return -1 so we can try again
         while self.vehicle.mode == 'GUIDED':
             if self.vehicle.location.global_relative_frame.alt >= self.height * 0.95:  # Trigger just below target alt.
-                self.logger.info("The Solo is now ready to fly")
+                self.logger.info("the solo is now ready to fly")
                 return 0
             time.sleep(1)
+        # Sometimes the Solo will switch out of GUIDED mode during takeoff
+        # If this happens, we will return -1 so we can try again
         self.logger.error("DroneDirectError: 'takeoff({0})' was interrupted. \
                           Vehicle was swicthed out of GUIDED mode".format(self.height))
         return -1
@@ -112,7 +119,7 @@ class Solo:
 
     def visit_waypoint(self, waypoint):
         """
-        Flies to the coordinates of the waypoint
+        Fly to the coordinates of the waypoint
         This function only returns when the solo has visited the waypoint
 
         @type waypoint: WayPoint

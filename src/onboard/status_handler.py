@@ -11,12 +11,15 @@ from global_classes import DroneTypeEncoder, LocationEncoder, WayPoint, WayPoint
 ## @ingroup Onboard
 # @brief This class will take care of packets of the 'status' message type
 class StatusHandler():
-    def __init__(self, solo, queue, logging_level):
+    def __init__(self, solo, queue, logging_level, log_type='console', filename=''):
         """
         Initiate the handler
 
         @type solo: Solo
         @type queue: WayPointQueue
+
+        @param log_type: log to stdout ('console') or to a file ('file')
+        @param filename: the name of the file if log_type is 'file'
         """
         self.packet = None
         self.message = None
@@ -26,7 +29,10 @@ class StatusHandler():
         # set up logging
         self.stat_logger = logging.getLogger("Status Handler")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
-        handler = logging.StreamHandler(stream=sys.stdout)  # TODO make logging to file possible
+        if log_type == 'console':
+            handler = logging.StreamHandler(stream=sys.stdout)
+        elif log_type == 'file':
+            handler = logging.FileHandler(filename=filename)
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.stat_logger.addHandler(handler)

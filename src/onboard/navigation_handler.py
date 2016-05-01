@@ -10,13 +10,16 @@ from global_classes import Location, WayPoint, WayPointEncoder, WayPointQueue, l
 ## @ingroup Onboard
 # @brief This class will take care of packets of the 'navigation' message type
 class NavigationHandler():
-    def __init__(self, solo, queue, navigation_thread, logging_level):
+    def __init__(self, solo, queue, navigation_thread, logging_level, log_type='console', filename=''):
         """
         Initiate the handler
 
         @type solo: Solo
         @type queue: WayPointQueue
         @type navigation_thread: NavigationThread
+
+        @param log_type: log to stdout ('console') or to a file ('file')
+        @param filename: the name of the file if log_type is 'file'
         """
         self.packet = None
         self.message = None
@@ -77,12 +80,13 @@ class NavigationHandler():
         self.waypoint_queue.home = home_location
         self.waypoint_queue.queue_lock.release()
 
-        self.logger.info("Arming Solo...")
+        self.logger.info("preparing the solo for takeoff")
         self.solo.arm()
         retval = self.solo.takeoff()
         if retval == -1:
             # takeoff failed
             # we will try one more time
+            self.logger.info("retrying takeoff")
             self.solo.arm()
             retval = self.solo.takeoff()
 
@@ -109,12 +113,15 @@ class NavigationThread (threading.Thread):
     This class will run in another thread and fly to the waypoints in the waypoint_queue
     """
 
-    def __init__(self, solo, waypoint_queue, logging_level):
+    def __init__(self, solo, waypoint_queue, logging_level, log_type='console', filename=''):
         """
         Initiate the thread
 
         @type solo: Solo
         @type waypoint_queue: WayPointQueue
+
+        @param log_type: log to stdout ('console') or to a file ('file')
+        @param filename: the name of the file if log_type is 'file'
         """
         threading.Thread.__init__(self)
         self.solo = solo
@@ -125,7 +132,10 @@ class NavigationThread (threading.Thread):
         # set up logging
         self.logger = logging.getLogger("Navigation Thread")
         formatter = logging.Formatter('[%(levelname)s] %(message)s')
-        handler = logging.StreamHandler(stream=sys.stdout)
+        if log_type == 'console':
+            handler = logging.StreamHandler(stream=sys.stdout)
+        elif log_type == 'file':
+            handler = logging.FileHandler(filename=filename)
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.logger.addHandler(handler)
@@ -136,28 +146,28 @@ class NavigationThread (threading.Thread):
             if self.waypoint_queue.is_empty():
                 time.sleep(1)
             else:
-                self.logger.debug("Getting waypoint")
+                self.logger.debug("getting waypoint")
                 waypoint = self.waypoint_queue.remove_waypoint()
 
-                self.logger.info("Visiting waypoint...")
+                self.logger.info("the solo is flying to a new waypoint")
                 self.solo.visit_waypoint(waypoint)
-                self.logger.info("Waypoint visited")
+                self.logger.info("the solo arrived at the waypoint")
                 time.sleep(0.1)
 
         if self.rth and not self.waypoint_queue.is_empty():
             home = self.waypoint_queue.remove_waypoint()
-            self.logger.debug("I am coming home")
+            self.logger.info("the solo is returning to his launch location")
             self.solo.visit_waypoint(home)
             self.solo.land()
 
     def return_to_home(self):
-        self.logger.debug("Returning to home location")
+        self.logger.debug("returning to home")
         self.solo.halt()
         self.quit = True
         self.rth = True
 
     def stop_thread(self):
-        self.logger.debug("Stopping navigation thread")
+        self.logger.info("stopping the navigation-thread")
         self.solo.halt()
         self.quit = True
         self.rth = False

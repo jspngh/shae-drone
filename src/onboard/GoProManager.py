@@ -59,7 +59,11 @@ REQUERY_COMMANDS = (mavutil.mavlink.GOPRO_COMMAND_VIDEO_SETTINGS,
 # @brief Takes care of the interaction with the GoPro camera of the Solo
 # This class was taken and adapted from 3DR code on the Solo
 class GoProManager():
-    def __init__(self, logging_level):
+    def __init__(self, logging_level, log_type='console', filename=''):
+        """
+        @param log_type: log to stdout ('console') or to a file ('file')
+        @param filename: the name of the file if log_type is 'file'
+        """
         # GoPro heartbeat state
         self.status = mavutil.mavlink.GOPRO_HEARTBEAT_STATUS_DISCONNECTED
         self.captureMode = GoProConstants.CAPTURE_MODE_VIDEO
@@ -90,7 +94,10 @@ class GoProManager():
 
         self.logger = logging.getLogger("GoProManager")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
-        handler = logging.StreamHandler(stream=sys.stdout)  # TODO
+        if log_type == 'console':
+            handler = logging.StreamHandler(stream=sys.stdout)
+        elif log_type == 'file':
+            handler = logging.FileHandler(filename=filename)
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.logger.addHandler(handler)

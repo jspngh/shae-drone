@@ -8,6 +8,20 @@ logformat = '[%(levelname)s] %(asctime)s in \'%(name)s\': %(message)s'
 dateformat = '%m-%d %H:%M:%S'
 
 
+def print_help(filename):
+    print 'Usage: ' + filename + ' -s -l <logging_level> -t <logging_type> -f <outputfile>'
+    print 'Options:'
+    print '  -l --level: \t\t Specify the logging level\n' \
+          '\t\t\t The available options are \'debug\', \'info\', \'warning\' and \'critical\'\n' \
+          '\t\t\t This defaults to \'critical\''
+    print '  -t --type: \t\t Specify the logging type, available options are:\n' \
+          '\t\t\t   \'console\', which prints the logs to the console, this is the default\n' \
+          '\t\t\t   \'file\', which prints the logs to a file, a filename needs to be specified'
+    print '  -f --file: \t\t Specify the name of the logfile'
+    print '  -s --simulate: \t Indicate that a simulated vehicle is used'
+    print '  -h --help: \t\t Display this information'
+
+
 ## @ingroup Global_classes
 # @brief Codes to tell the workstation what to expect
 # When sending a message to the workstation, the message will be preceded by one of these codes
@@ -119,7 +133,7 @@ class WayPointQueue():
 
     def sort_waypoints(self):
         """
-        Sorts the waypoints in the queue.
+        Sort the waypoints in the queue.
         This function uses BubbleSort which is not efficient for large lists,
         but we only have a limited number of waypoints in the queue, so this shouldn't be a bottleneck.
         """
@@ -140,7 +154,7 @@ class WayPointQueue():
 
     def is_empty(self):
         """
-        Is the queue empty or not
+        @returns: a boolean telling whether the queue is empty or not
         """
         self.queue_lock.acquire()
         result = not self.queue
