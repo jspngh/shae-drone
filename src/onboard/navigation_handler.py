@@ -82,7 +82,7 @@ class NavigationHandler():
         retval = self.solo.takeoff()
         if retval == -1:
             # takeoff failed
-            # we will try 1 more time
+            # we will try one more time
             self.solo.arm()
             retval = self.solo.takeoff()
 

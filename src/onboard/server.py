@@ -67,7 +67,7 @@ class Server():
         self.broadcast_thread.start()
         while not self.quit:
             try:
-                self.logger.debug("Waiting for connection in server")
+                # self.logger.debug("Waiting for connection in server")
                 client, address = self.serversocket.accept()
                 self.broadcast_thread.stop_thread()
                 length = client.recv(4)
@@ -81,7 +81,7 @@ class Server():
                                                heartbeat_thread=self.heartbeat_thread, logger=self.logger)
                 control_thread.start()
             except socket.error:
-                self.logger.debug("No connection was made")
+                # self.logger.debug("No connection was made")
                 pass
         self.serversocket.close()
 
@@ -257,23 +257,33 @@ class BroadcastThread(threading.Thread):
         self.quit = False
 
     def run(self):
-        self.wait_for_control_module()
-        self.broadcast_hello_message()
+        rdy = self.wait_for_control_module()
+        if rdy:
+            self.broadcast_hello_message()
+        else:
+            self.broadcast_fail_message()
         return
 
     def wait_for_control_module(self):
         home_dir = os.path.expanduser('~')
         cm_rdy = os.path.join(home_dir, '.shae', 'cm_ready')
-        while not os.path.exists(cm_rdy):
+        cm_fail = os.path.join(home_dir, '.shae', 'cm_fail')
+        while not (os.path.exists(cm_rdy) or os.path.exists(cm_fail)):
             time.sleep(2)
-        cm_mod_time = os.path.getmtime(cm_rdy)
-        curr_time = time.time()
-        while(curr_time - cm_mod_time > 10):
-            time.sleep(2)
-            cm_mod_time = os.path.getmtime(cm_rdy)
-            curr_time = time.time()
 
-        self.logger.debug("Control module is now ready")
+        while not self.quit:
+            curr_time = time.time()
+            if os.path.exists(cm_rdy):
+                cm_rdy_mod_time = os.path.getmtime(cm_rdy)
+                if (curr_time - cm_rdy_mod_time < 15):
+                    self.logger.info("The control module is now ready")
+                    return True
+            if os.path.exists(cm_fail):
+                cm_fail_mod_time = os.path.getmtime(cm_fail)
+                if (curr_time - cm_fail_mod_time < 15):
+                    self.logger.info("The control module has failed to start up properly")
+                    return False
+            time.sleep(2)
 
     def broadcast_hello_message(self):
         hello = {"message_type": "hello",
@@ -294,6 +304,35 @@ class BroadcastThread(threading.Thread):
         while not self.quit:
             bcsocket.sendto(hello_json, (self.broadcast_address, self.helloPort))
             self.logger.debug("Broadcasting hello to " + str(self.broadcast_address) + ":" + str(self.helloPort))
+            try:
+                raw_response, address = bcsocket.recvfrom(1024)
+                response = json.loads(raw_response)
+                if 'message_type' in response:
+                    if response['message_type'] == 'hello':
+                        self.quit = True
+                        self.logger.debug("Reply received, stopping broadcast")
+            except socket.timeout:
+                pass
+
+    def broadcast_fail_message(self):
+        fail = {"message_type": "fail",
+                "ip_drone": self.HOST,
+                "ip_controller": self.controllerIp,
+                "port_stream": self.streamPort,
+                "port_commands": self.commandPort,
+                "stream_file": self.streamFile,
+                "vision_width": self.visionWidth}
+        fail_json = json.dumps(fail)
+
+        bcsocket = socket.socket(socket.AF_INET,        # Internet
+                                 socket.SOCK_DGRAM)     # UDP
+        bcsocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
+        bcsocket.setsockopt(socket.SOL_SOCKET, socket.SO_BROADCAST, 1)
+        bcsocket.settimeout(10)
+        bcsocket.bind(('', 0))  # OS will select available port
+        while not self.quit:
+            bcsocket.sendto(fail_json, (self.broadcast_address, self.helloPort))
+            self.logger.debug("Broadcasting fail message to " + str(self.broadcast_address) + ":" + str(self.helloPort))
             try:
                 raw_response, address = bcsocket.recvfrom(1024)
                 response = json.loads(raw_response)

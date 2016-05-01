@@ -57,7 +57,7 @@ class Solo:
         self.logger.info("Control granted")
         if self.vehicle.armed is False:
             # Don't let the user try to arm until autopilot is ready
-            self.logger.info("Waiting for vehicle to initialise...")
+            self.logger.debug("Waiting for vehicle to initialise...")
             while not self.vehicle.is_armable:
                 time.sleep(1)
             self.vehicle.armed = True
@@ -71,12 +71,12 @@ class Solo:
             return
 
         while not self.vehicle.armed:
-            print " Waiting for arming..."
+            self.logger.debug("Waiting for arming...")
             time.sleep(1)
 
-        print "Taking off..."
+        self.logger.info("The Solo is now taking off")
         if self.vehicle.system_status != SystemStatus('STANDBY'):
-            self.logger.info("Already airborne")
+            self.logger.debug("Already airborne")
             return
         self.vehicle.simple_takeoff(self.height)
         # Wait until the vehicle reaches a safe height
@@ -84,7 +84,7 @@ class Solo:
         # If this happens, we will return -1 so we can try again
         while self.vehicle.mode == 'GUIDED':
             if self.vehicle.location.global_relative_frame.alt >= self.height * 0.95:  # Trigger just below target alt.
-                self.logger.info("Takeoff Complete")
+                self.logger.info("The Solo is now ready to fly")
                 return 0
             time.sleep(1)
         self.logger.error("DroneDirectError: 'takeoff({0})' was interrupted. \

@@ -46,6 +46,7 @@ class ControlModule():
                 self.logger.debug("connecting to dronekit failed")
                 attemps -= 1
                 if attemps == 0:
+                    self.signal_fail()
                     exit(1)
 
         # handle signals to exit gracefully
@@ -163,6 +164,14 @@ class ControlModule():
         cm_rdy = os.path.join(home_dir, '.shae', 'cm_ready')
         with open(cm_rdy, 'a'):
             os.utime(cm_rdy, None)
+
+    def signal_fail(self):
+        home_dir = os.path.expanduser('~')
+        if not os.path.exists(os.path.join(home_dir, '.shae')):
+            os.mkdir(os.path.join(home_dir, '.shae'))
+        cm_fail = os.path.join(home_dir, '.shae', 'cm_fail')
+        with open(cm_fail, 'a'):
+            os.utime(cm_fail, None)
 
 
 def print_help():
