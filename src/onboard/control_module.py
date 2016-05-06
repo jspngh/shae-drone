@@ -7,7 +7,6 @@ import socket
 import getopt
 import logging
 import dronekit
-from dronekit import connect
 
 from solo import Solo
 from navigation_handler import NavigationHandler, NavigationThread
