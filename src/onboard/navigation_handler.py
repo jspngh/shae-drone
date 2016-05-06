@@ -30,7 +30,10 @@ class NavigationHandler():
         # set up logging
         self.logger = logging.getLogger("Navigation Handler")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
-        handler = logging.StreamHandler(stream=sys.stdout)  # TODO make logging to file possible
+        if log_type == 'console':
+            handler = logging.StreamHandler(stream=sys.stdout)
+        elif log_type == 'file':
+            handler = logging.FileHandler(filename=filename)
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.logger.addHandler(handler)
@@ -131,7 +134,7 @@ class NavigationThread (threading.Thread):
 
         # set up logging
         self.logger = logging.getLogger("Navigation Thread")
-        formatter = logging.Formatter('[%(levelname)s] %(message)s')
+        formatter = logging.Formatter(logformat, datefmt=dateformat)
         if log_type == 'console':
             handler = logging.StreamHandler(stream=sys.stdout)
         elif log_type == 'file':

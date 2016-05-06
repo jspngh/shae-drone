@@ -33,15 +33,15 @@ class ControlModule():
         self.quit = False
 
         connection_succeeded = False
-        attemps = 5
+        attemps = 1
         while not connection_succeeded:
             try:
                 if SIM:
-                    self.vehicle = dronekit.connect('tcp:127.0.0.1:5760', wait_ready=True)
+                    self.vehicle = dronekit.connect('tcp:127.0.0.1:5760', wait_ready=True, heartbeat_timeout=60)
                     self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
                     connection_succeeded = True
                 else:
-                    self.vehicle = dronekit.connect('udpin:0.0.0.0:14550', wait_ready=True)
+                    self.vehicle = dronekit.connect('udpin:0.0.0.0:14550', wait_ready=True, heartbeat_timeout=60)
                     self.solo = Solo(vehicle=self.vehicle, logging_level=log_level, log_type=log_type, filename=filename)
                     connection_succeeded = True
             except dronekit.APIException:
