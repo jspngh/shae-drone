@@ -3,12 +3,11 @@
 #
 import sys
 import yaml
-import struct
 import logging
 import threading
 from pymavlink import mavutil
 
-from GoProConstants import *
+import GoProConstants
 from global_classes import logformat, dateformat
 
 VALID_GET_COMMANDS = (mavutil.mavlink.GOPRO_COMMAND_POWER,
@@ -56,16 +55,23 @@ REQUERY_COMMANDS = (mavutil.mavlink.GOPRO_COMMAND_VIDEO_SETTINGS,
                     mavutil.mavlink.GOPRO_COMMAND_PROTUNE_EXPOSURE)
 
 
+## @ingroup Onboard
+# @brief Takes care of the interaction with the GoPro camera of the Solo
+# This class was taken and adapted from 3DR code on the Solo
 class GoProManager():
-    def __init__(self, logging_level):
+    def __init__(self, logging_level, log_type='console', filename=''):
+        """
+        @param log_type: log to stdout ('console') or to a file ('file')
+        @param filename: the name of the file if log_type is 'file'
+        """
         # GoPro heartbeat state
         self.status = mavutil.mavlink.GOPRO_HEARTBEAT_STATUS_DISCONNECTED
-        self.captureMode = CAPTURE_MODE_VIDEO
+        self.captureMode = GoProConstants.CAPTURE_MODE_VIDEO
         self.isRecording = False
         # Additional GoPro state
         self.battery = 0
-        self.model = MODEL_NONE
-        self.videoFormat = VIDEO_FORMAT_NTSC
+        self.model = GoProConstants.MODEL_NONE
+        self.videoFormat = GoProConstants.VIDEO_FORMAT_NTSC
         self.videoResolution = 0
         self.videoFrameRate = 0
         self.videoFieldOfView = 0
@@ -88,7 +94,10 @@ class GoProManager():
 
         self.logger = logging.getLogger("GoProManager")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
-        handler = logging.StreamHandler(stream=sys.stdout)  # TODO
+        if log_type == 'console':
+            handler = logging.StreamHandler(stream=sys.stdout)
+        elif log_type == 'file':
+            handler = logging.FileHandler(filename=filename)
         handler.setFormatter(formatter)
         handler.setLevel(logging_level)
         self.logger.addHandler(handler)
@@ -165,7 +174,7 @@ class GoProManager():
             videoResolution = value[0]
             videoFrameRate = value[1]
             videoFieldOfView = value[2]
-            videoFormat = VIDEO_FORMAT_NTSC if (value[3] & mavutil.mavlink.GOPRO_VIDEO_SETTINGS_TV_MODE) == 0 else VIDEO_FORMAT_PAL
+            videoFormat = GoProConstants.VIDEO_FORMAT_NTSC if (value[3] & mavutil.mavlink.GOPRO_VIDEO_SETTINGS_TV_MODE) == 0 else GoProConstants.VIDEO_FORMAT_PAL
             if self.videoResolution != videoResolution:
                 self.videoResolution = videoResolution
                 self.logger.debug("Gopro video resolution changed to %d" % (self.videoResolution))
