@@ -18,15 +18,16 @@ class Solo:
         @param log_type: log to stdout ('console') or to a file ('file')
         @param filename: the name of the file if log_type is 'file'
         """
-        self.goproManager = GoProManager(logging_level=logging_level, log_type=log_type, filename=filename)
         self.vehicle = vehicle
         self.is_halted = False  # when this becomes 'True', the solo should stop visiting waypoints
 
-        # receive GoPro messages
-        self.vehicle.add_attribute_listener('gopro_status', self.goproManager.state_callback)
-        self.vehicle.add_attribute_listener(attr_name='GOPRO_GET_RESPONSE', observer=self.goproManager.get_response_callback)
-        self.vehicle.add_message_listener(name='GOPRO_GET_RESPONSE', fn=self.goproManager.get_response_callback)
-        self.vehicle.add_attribute_listener('GOPRO_SET_RESPONSE', self.goproManager.set_response_callback)
+        # When you want to receive GoPro messages, this will have to be uncommented
+        # However, using it might insert some instabilities
+        # self.goproManager = GoProManager(logging_level=logging_level, log_type=log_type, filename=filename)
+        # self.vehicle.add_attribute_listener('gopro_status', self.goproManager.state_callback)
+        # self.vehicle.add_attribute_listener(attr_name='GOPRO_GET_RESPONSE', observer=self.goproManager.get_response_callback)
+        # self.vehicle.add_message_listener(name='GOPRO_GET_RESPONSE', fn=self.goproManager.get_response_callback)
+        # self.vehicle.add_attribute_listener('GOPRO_SET_RESPONSE', self.goproManager.set_response_callback)
 
         self.fence_breach = False
         self.last_send_point = 0
@@ -82,6 +83,11 @@ class Solo:
 
         if self.vehicle.system_status != SystemStatus('STANDBY'):
             self.logger.debug("solo was already airborne")
+            loc = self.vehicle.location
+            loc.alt = loc.alt + self.height
+            self.vehicle.commands.goto(loc)
+            self.vehicle.flush()
+            self.logger.debug("command flushed")
             return
 
         self.logger.info("the solo is now taking off")

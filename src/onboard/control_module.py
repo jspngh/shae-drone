@@ -44,10 +44,11 @@ class ControlModule():
                     self.vehicle = dronekit.connect('udpin:0.0.0.0:14550', wait_ready=True, heartbeat_timeout=60)
                     self.solo = Solo(vehicle=self.vehicle, logging_level=log_level, log_type=log_type, filename=filename)
                     connection_succeeded = True
-            except dronekit.APIException:
+            except dronekit.APIException, msg:
                 attemps -= 1
                 if attemps == 0:
                     self.logger.error("connecting to dronekit failed")
+                    self.logger.error(msg)
                     self.signal_fail()
                     exit(1)
                 self.logger.debug("re-attempting to connect to dronekit")
