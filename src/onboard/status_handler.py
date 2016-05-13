@@ -73,8 +73,8 @@ class StatusHandler():
         elif (self.message == "heartbeat"):  # a heartbeat was requested
             self.waypoint_queue.queue_lock.acquire()
             last_wayp_ord = self.waypoint_queue.last_waypoint_order
-            height = self.solo.get_height()
             self.waypoint_queue.queue_lock.release()
+            height = self.solo.get_height()
             battery = self.solo.get_battery_level()
             gps_signal_strength = self.solo.get_gps_signal_strength()
             loc = self.solo.get_location()

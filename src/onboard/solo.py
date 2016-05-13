@@ -1,6 +1,7 @@
 import sys
 import math
 import logging
+from threading import RLock
 from pymavlink.mavutil import mavlink
 from dronekit import VehicleMode, Battery, Attitude, SystemStatus, LocationGlobal, LocationGlobalRelative, time
 
@@ -19,6 +20,7 @@ class Solo:
         @param filename: the name of the file if log_type is 'file'
         """
         self.vehicle = vehicle
+        self.solo_lock = RLock()  # make sure that only 1 thread can access the vehicle at the same time
         self.is_halted = False  # when this becomes 'True', the solo should stop visiting waypoints
 
         # When you want to receive GoPro messages, this will have to be uncommented
@@ -58,6 +60,7 @@ class Solo:
         return
 
     def arm(self):
+        self.solo_lock.acquire()
         self.vehicle.mode = VehicleMode("GUIDED")
         while self.vehicle.mode != "GUIDED":
             time.sleep(0.1)
@@ -69,12 +72,15 @@ class Solo:
                 time.sleep(1)
             self.vehicle.armed = True
             self.logger.info("the solo is now armed")
+        self.solo_lock.release()
 
     # takeoff - takeoff to some altitude, needs armed status - params: meters
     def takeoff(self):
+        self.solo_lock.acquire()
         if self.vehicle.mode != 'GUIDED':
             self.logger.error("DroneDirectError: 'takeoff({0})' was not executed. \
                               Vehicle was not in GUIDED mode".format(self.height))
+            self.solo_lock.release()
             return -1
 
         while not self.vehicle.armed:
@@ -83,45 +89,56 @@ class Solo:
 
         if self.vehicle.system_status != SystemStatus('STANDBY'):
             self.logger.debug("solo was already airborne")
-            loc = self.vehicle.location
+            loc = self.vehicle.location.global_frame
             loc.alt = loc.alt + self.height
             self.vehicle.commands.goto(loc)
             self.vehicle.flush()
             self.logger.debug("command flushed")
+            self.solo_lock.release()
             return
 
         self.logger.info("the solo is now taking off")
         self.vehicle.simple_takeoff(self.height)
         # Wait until the vehicle reaches a safe height
-        while self.vehicle.mode == 'GUIDED':
+        # while self.vehicle.mode == 'GUIDED':
+        while True:
+            self.logger.debug("solo is in {0} mode".format(self.vehicle.mode))
             if self.vehicle.location.global_relative_frame.alt >= self.height * 0.95:  # Trigger just below target alt.
                 self.logger.info("the solo is now ready to fly")
+                self.solo_lock.release()
                 return 0
             time.sleep(1)
         # Sometimes the Solo will switch out of GUIDED mode during takeoff
         # If this happens, we will return -1 so we can try again
         self.logger.error("DroneDirectError: 'takeoff({0})' was interrupted. \
                           Vehicle was swicthed out of GUIDED mode".format(self.height))
+        self.solo_lock.release()
         return -1
 
     def halt(self):
+        self.solo_lock.acquire()
         self.is_halted = True
+        self.solo_lock.release()
 
     # brake - Stop the solo moving
     def brake(self):
+        self.solo_lock.acquire()
         mode = self.vehicle.mode
         msg = self.vehicle.message_factory.set_mode_encode(0, mavlink.MAV_MODE_FLAG_CUSTOM_MODE_ENABLED, 17)
         self.vehicle.send_mavlink(msg)
         self.vehicle.flush()
         self.vehicle.mode = mode
+        self.solo_lock.release()
 
     # land - Land the solo moving
     def land(self):
+        self.solo_lock.acquire()
         self.vehicle.mode = VehicleMode("LAND")
         while self.vehicle.mode != "LAND":
             self.vehicle.mode = VehicleMode("LAND")
             time.sleep(0.1)
         self.logger.info("Landing Solo...")
+        self.solo_lock.release()
 
     def visit_waypoint(self, waypoint):
         """
@@ -130,11 +147,12 @@ class Solo:
 
         @type waypoint: WayPoint
         """
-        latlon_to_m = 1.113195e5   # converts lat/lon to meters
+        # Here we don't need to take the lock, since we want to be able to send heartbeats while we visit waypoints
 
         location = LocationGlobalRelative(lat=waypoint.location.latitude, lon=waypoint.location.longitude, alt=self.height)
         self.vehicle.simple_goto(location=location, airspeed=self.speed)
 
+        latlon_to_m = 1.113195e5   # converts lat/lon to meters
         while self.vehicle.mode == "GUIDED":
             veh_loc = self.vehicle.location.global_relative_frame
             diff_lat_m = (location.lat - veh_loc.lat) * latlon_to_m
@@ -156,14 +174,17 @@ class Solo:
         """
         This won't be used in this project, but might prove useful for future uses
         """
+        self.solo_lock.acquire()
         if self.fence_breach:
             raise StandardError("You are outside of the fence")
         if self.vehicle.mode != 'GUIDED':
             self.logger.error("DroneDirectError: 'point({0})' was not executed. \
                               Vehicle was not in GUIDED mode".format(degrees))
+            self.solo_lock.release()
             return
         # limit our update rate
         if (time.time() - self.last_send_point) < 1.0 / self.update_rate:
+            self.solo_lock.release()
             return
         if relative:
             is_relative = 1  # yaw relative to direction of travel
@@ -189,20 +210,25 @@ class Solo:
         self.vehicle.send_mavlink(msg)
         self.vehicle.flush()
         self.last_send_point = time.time()
+        self.solo_lock.release()
 
     # step_left - Send the solo left some distance - params: distance meters
     def translate(self, x=0, y=0, z=0, wait_for_arrival=False):
         """
         This won't be used in this project, but might prove useful for future uses
         """
+        self.solo_lock.acquire()
         if self.fence_breach:
+            self.solo_lock.release()
             raise StandardError("You are outside of the fence")
         if self.vehicle.mode != 'GUIDED':
             self.logger.error("DroneDirectError: 'translate({0},{1},{2})' was not executed. \
                               Vehicle was not in GUIDED mode".format(x, y, z))
+            self.solo_lock.release()
             return
         # limit our update rate
         if (time.time() - self.last_send_translate) < 1.0 / self.update_rate:
+            self.solo_lock.release()
             return
         yaw = self.vehicle.attitude.yaw  # radians
         location = self.vehicle.location.global_relative_frame  # latlon
@@ -245,30 +271,41 @@ class Solo:
                 dist_xyz = math.sqrt(diff_lat_m**2 + diff_lon_m**2 + diff_alt_m**2)
                 if dist_xyz < self.distance_threshold:
                     self.logger.info("Arrived")
+                    self.solo_lock.release()
                     return
             self.logger.error("DroneDirectError: 'translate({0},{1},{2})' was interrupted. \
                               Vehicle was switched out of GUIDED mode".format(x, y, z))
+        self.solo_lock.release()
 
     def get_battery_level(self):
+        self.solo_lock.acquire()
         batt = self.vehicle.battery
+        self.solo_lock.release()
         return batt.level
 
     def get_drone_type(self):
         return self.drone_type
 
     def get_location(self):
+        self.solo_lock.acquire()
         veh_loc = self.vehicle.location.global_relative_frame
         loc = Location(longitude=veh_loc.lon, latitude=veh_loc.lat)
+        self.solo_lock.release()
         return loc
 
     def get_gps_signal_strength(self):
+        self.solo_lock.acquire()
         ss = self.vehicle.gps_0.satellites_visible
         if ss is None:
             ss = -1
+        self.solo_lock.release()
         return ss
 
     def get_speed(self):
-        return self.vehicle.airspeed
+        self.solo_lock.acquire()
+        airspeed = self.vehicle.airspeed
+        self.solo_lock.release()
+        return airspeed
 
     def get_target_speed(self):
         return self.speed
@@ -282,7 +319,9 @@ class Solo:
         return
 
     def get_height(self):
+        self.solo_lock.acquire()
         loc = self.vehicle.location
+        self.solo_lock.release()
         return loc.global_relative_frame.alt
 
     def get_target_height(self):
@@ -293,7 +332,9 @@ class Solo:
         return
 
     def get_orientation(self):
+        self.solo_lock.acquire()
         att = self.vehicle.attitude
+        self.solo_lock.release()
         return att.yaw
 
     def get_camera_angle(self):
@@ -377,6 +418,7 @@ class Solo:
         return
 
     def control_gimbal(self, pitch=None, roll=None, yaw=None):
+        self.solo_lock.acquire()
         self.logger.info("Operating Gimbal...")
         gmbl = self.vehicle.gimbal
         if pitch is None:
@@ -393,6 +435,7 @@ class Solo:
 
         gmbl.release
         self.logger.info("Gimbal Operation Complete")
+        self.solo_lock.release()
 
     def distance_to_waypoint(self, waypoint):
         """

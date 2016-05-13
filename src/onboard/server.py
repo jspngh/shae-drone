@@ -171,6 +171,7 @@ class HeartBeatThread (threading.Thread):
         """
         threading.Thread.__init__(self)
         self.quit = False
+        self.pause = False
         self.workstation_ip = None
         self.workstation_port = None
         self.logger = logger
@@ -218,6 +219,9 @@ class HeartBeatThread (threading.Thread):
                 workstation_socket.close()
             except socket.error, msg:
                 self.logger.debug("socket error: {0}".format(msg))
+
+            while self.pause:
+                time.sleep(2)
 
             # sleep 500ms before requesting another heartbeat
             time.sleep(1)
@@ -276,12 +280,12 @@ class BroadcastThread(threading.Thread):
             curr_time = time.time()
             if os.path.exists(cm_rdy):
                 cm_rdy_mod_time = os.path.getmtime(cm_rdy)
-                if (curr_time - cm_rdy_mod_time < 15):
+                if (curr_time - cm_rdy_mod_time < 5):
                     self.logger.info("the control module is now ready")
                     return True
             if os.path.exists(cm_fail):
                 cm_fail_mod_time = os.path.getmtime(cm_fail)
-                if (curr_time - cm_fail_mod_time < 15):
+                if (curr_time - cm_fail_mod_time < 5):
                     self.logger.info("the control module has failed to start up properly")
                     return False
             time.sleep(2)
@@ -347,8 +351,9 @@ class BroadcastThread(threading.Thread):
                 pass
 
     def stop_thread(self):
-        self.logger.info("stopping the broadcast-thread")
-        self.quit = True
+        if not self.quit:
+            self.logger.info("stopping the broadcast-thread")
+            self.quit = True
 
 
 if __name__ == '__main__':

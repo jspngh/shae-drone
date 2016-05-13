@@ -7,6 +7,7 @@ import socket
 import getopt
 import logging
 import dronekit
+from dronekit_solo import SoloVehicle
 
 from solo import Solo
 from navigation_handler import NavigationHandler, NavigationThread
@@ -37,11 +38,11 @@ class ControlModule():
         while not connection_succeeded:
             try:
                 if SIM:
-                    self.vehicle = dronekit.connect('tcp:127.0.0.1:5760', wait_ready=True, heartbeat_timeout=60)
+                    self.vehicle = dronekit.connect('tcp:127.0.0.1:5760', wait_ready=True, heartbeat_timeout=-1)
                     self.solo = Solo(vehicle=self.vehicle, logging_level=log_level)
                     connection_succeeded = True
                 else:
-                    self.vehicle = dronekit.connect('udpin:0.0.0.0:14550', wait_ready=True, heartbeat_timeout=60)
+                    self.vehicle = dronekit.connect('udpin:0.0.0.0:14550', wait_ready=False, vehicle_class=SoloVehicle, source_system=255, use_native=True, heartbeat_timeout=-1)
                     self.solo = Solo(vehicle=self.vehicle, logging_level=log_level, log_type=log_type, filename=filename)
                     connection_succeeded = True
             except dronekit.APIException, msg:
