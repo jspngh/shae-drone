@@ -14,12 +14,13 @@ class NavigationHandler():
         """
         Initiate the handler
 
-        @type solo: Solo
-        @type queue: WayPointQueue
-        @type navigation_thread: NavigationThread
-
-        @param log_type: log to stdout ('console') or to a file ('file')
-        @param filename: the name of the file if log_type is 'file'
+        Args:
+            solo: Solo instance
+            queue: WayPointQueue instance
+            navigation_thread: NavigationThread instance
+            logging_level: the level that should be used for logging, e.g. DEBUG
+            log_type: log to stdout ('console') or to a file ('file')
+            filename: the name of the file if log_type is 'file'
         """
         self.packet = None
         self.message = None
@@ -111,20 +112,18 @@ class NavigationHandler():
 
 
 ## @ingroup Onboard
+# @brief This class will run in another thread and fly to the waypoints in the waypoint queue
 class NavigationThread (threading.Thread):
-    """
-    This class will run in another thread and fly to the waypoints in the waypoint_queue
-    """
-
     def __init__(self, solo, waypoint_queue, logging_level, log_type='console', filename=''):
         """
         Initiate the thread
 
-        @type solo: Solo
-        @type waypoint_queue: WayPointQueue
-
-        @param log_type: log to stdout ('console') or to a file ('file')
-        @param filename: the name of the file if log_type is 'file'
+        Args:
+            solo: Solo instance
+            waypoint_queue: WayPointQueue instance
+            logging_level: the level that should be used for logging, e.g. DEBUG
+            log_type: log to stdout ('console') or to a file ('file')
+            filename: the name of the file if log_type is 'file'
         """
         threading.Thread.__init__(self)
         self.solo = solo

@@ -14,10 +14,14 @@ from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logfo
 class Solo:
     def __init__(self, vehicle, height=4, speed=5, update_rate=15, logging_level=logging.CRITICAL, log_type='console', filename=''):
         """
-        @type vehicle: Vehicle
-
-        @param log_type: log to stdout ('console') or to a file ('file')
-        @param filename: the name of the file if log_type is 'file'
+        Args:
+            vehicle: a DroneKit Vehicle
+            height: the height that the drone should fly on
+            speed: the flying speed on the drone
+            update_rate: not used by any of the functions used in Project Shae
+            logging_level: the level that should be used for logging, e.g. DEBUG
+            log_type: log to stdout ('console') or to a file ('file')
+            filename: the name of the file if log_type is 'file'
         """
         self.vehicle = vehicle
         self.solo_lock = RLock()  # make sure that only 1 thread can access the vehicle at the same time
@@ -145,7 +149,8 @@ class Solo:
         Fly to the coordinates of the waypoint
         This function only returns when the solo has visited the waypoint
 
-        @type waypoint: WayPoint
+        Args:
+            waypoint: a WayPoint
         """
         # Here we don't need to take the lock, since we want to be able to send heartbeats while we visit waypoints
 
@@ -311,10 +316,18 @@ class Solo:
         return self.speed
 
     def set_target_speed(self, speed):
+        """
+        Args:
+            speed: desired speed of the drone
+        """
         self.speed = speed
         return
 
     def set_distance_threshold(self, threshold):
+        """
+        Args:
+            threshold: threshold to use to determine wheter the Solo has reached a waypoint
+        """
         self.distance_threshold = threshold
         return
 
@@ -328,6 +341,10 @@ class Solo:
         return self.height
 
     def set_target_height(self, height):
+        """
+        Args:
+            height: desired height of the drone
+        """
         self.height = height
         return
 
@@ -338,9 +355,17 @@ class Solo:
         return att.yaw
 
     def get_camera_angle(self):
-        return
+        self.solo_lock.acquire()
+        angle = self.vehicle.gimbal.pitch()
+        self.solo_lock.release()
+        return angle
 
     def set_camera_angle(self, angle):
+        """
+        Args:
+            angle: desired angle of the camera: 0 = ahead, 90 = down
+        """
+        self.control_gimbal(-angle)
         return
 
     def get_camera_fps(self):
@@ -441,8 +466,10 @@ class Solo:
         """
         This function was taken from http://python.dronekit.io/examples/mission_basic.html
 
-        @type waypoint: WayPoint
-        :returns: distance in metres to the waypoint
+        Args:
+            waypoint: WayPoint
+        Returns:
+            distance in metres to the waypoint
         """
         lat = waypoint.location.latitude
         lon = waypoint.location.longitude
@@ -456,10 +483,12 @@ class Solo:
         """
         This function was taken from http://python.dronekit.io/examples/mission_basic.html
 
-        @type original_location: Location
-        :returns: a LocationGlobal object containing the latitude/longitude `dNorth` and `dEast` metres from the
-                  specified `original_location`. The returned Location has the same `alt` value
-                  as `original_location`.
+        Args:
+            original_location: a Location
+        Returns:
+            a LocationGlobal object containing the latitude/longitude `dNorth` and `dEast` metres from the
+            specified `original_location`. The returned Location has the same `alt` value
+            as `original_location`.
         """
         earth_radius = 6378137.0  # Radius of "spherical" earth
         # Coordinate offsets in radians
@@ -475,9 +504,11 @@ class Solo:
         """
         This function was taken from http://python.dronekit.io/examples/mission_basic.html
 
-        @type aLocation1: Location
-        @type aLocation2: Location
-        :returns: the ground distance in metres between two LocationGlobal objects.
+        Args:
+            aLocation1: a Location
+            aLocation2: a Location
+        Returns:
+            the ground distance in metres between two LocationGlobal objects.
         """
         latlon_to_m = 1.113195e5   # converts lat/lon to meters
         dlat = aLocation2.latitude - aLocation1.latitude

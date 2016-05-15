@@ -12,10 +12,11 @@ class SettingsHandler():
         """
         Initiate the handler
 
-        @type solo: Solo
-
-        @param log_type: log to stdout ('console') or to a file ('file')
-        @param filename: the name of the file if log_type is 'file'
+        Args:
+            solo: Solo instance
+            logging_level: the level that should be used for logging, e.g. DEBUG
+            log_type: log to stdout ('console') or to a file ('file')
+            filename: the name of the file if log_type is 'file'
         """
         self.packet = None
         self.message = None

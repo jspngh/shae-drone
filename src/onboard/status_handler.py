@@ -15,11 +15,12 @@ class StatusHandler():
         """
         Initiate the handler
 
-        @type solo: Solo
-        @type queue: WayPointQueue
-
-        @param log_type: log to stdout ('console') or to a file ('file')
-        @param filename: the name of the file if log_type is 'file'
+        Args:
+            solo: Solo instance
+            queue: WayPointQueue instance
+            logging_level: the level that should be used for logging, e.g. DEBUG
+            log_type: log to stdout ('console') or to a file ('file')
+            filename: the name of the file if log_type is 'file'
         """
         self.packet = None
         self.message = None
@@ -41,7 +42,7 @@ class StatusHandler():
     def handle_packet(self, packet, message):
         self.packet = packet
         self.message = message
-        if (self.message == "all_statuses"):  # TODO: all status attributes are requested
+        if (self.message == "all_statuses"):
             self.waypoint_queue.queue_lock.acquire()
             last_wayp_ord = self.waypoint_queue.last_waypoint_order
             self.waypoint_queue.queue_lock.release()
@@ -179,7 +180,9 @@ class StatusHandler():
 
     def create_packet(self, data, cls=None, heartbeat=False):
         """
-        @type data: dict
+        Create a packet in JSON format from some data
+        Args:
+            data: dict with data that should come in the packet
         """
         now = time.time()
         localtime = time.localtime(now)

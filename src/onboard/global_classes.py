@@ -9,6 +9,12 @@ dateformat = '%m-%d %H:%M:%S'
 
 
 def print_help(filename):
+    """
+    Print some help information that is displayed when calling 'filename --help'
+
+    Args:
+        filename: the name of the file for which the help information should be printed
+    """
     print 'Usage: ' + filename + ' -s -l <logging_level> -t <logging_type> -f <outputfile>'
     print 'Options:'
     print '  -l --level: \t\t Specify the logging level\n' \
@@ -105,8 +111,9 @@ class WayPointQueue():
 
     def insert_waypoint(self, waypoint, side='back'):
         """
-        @type waypoint: WayPoint
-        @param side: specifies whether to insert the waypoint in the front or the back of the queue
+        Args:
+            waypoint: a WayPoint
+            side: specifies whether to insert the waypoint in the front or the back of the queue
         """
         self.queue_lock.acquire()
         if side == 'front':
@@ -117,7 +124,8 @@ class WayPointQueue():
 
     def remove_waypoint(self, side='front'):
         """
-        @param side: specifies whether to remove the waypoint from the front or the back of the queue
+        Args:
+            side: specifies whether to remove the waypoint from the front or the back of the queue
         """
         self.queue_lock.acquire()
         if side == 'back':
@@ -134,6 +142,7 @@ class WayPointQueue():
     def sort_waypoints(self):
         """
         Sort the waypoints in the queue.
+
         This function uses BubbleSort which is not efficient for large lists,
         but we only have a limited number of waypoints in the queue, so this shouldn't be a bottleneck.
         """
@@ -154,7 +163,8 @@ class WayPointQueue():
 
     def is_empty(self):
         """
-        @returns: a boolean telling whether the queue is empty or not
+        Returns:
+            a boolean telling whether the queue is empty or not
         """
         self.queue_lock.acquire()
         result = not self.queue

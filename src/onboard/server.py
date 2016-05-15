@@ -14,13 +14,19 @@ from global_classes import MessageCodes, logformat, dateformat, print_help
 
 ## @ingroup Onboard
 # @brief Onboard server that will communicate with the workstation
+#
+# The server will first wait until the control module is ready
+# Then start sending hello message until an answer is received
+# It will then continuously listen for requests
+# And create a ControlThread per request to handle the request
 class Server():
     def __init__(self, logger, SIM):
         """
         Initiate the server
 
-        @type logger: logging.Logger
-        @type SIM: bool
+        Args:
+            logger: logging.Logger instance
+            SIM: boolean, is this is a simulation or not
         """
         self.SIM = SIM
         self.logger = logger
@@ -49,8 +55,7 @@ class Server():
         try:
             self.serversocket.bind((self.HOST, self.PORT))
             self.serversocket.listen(1)  # become a server socket, only 1 connection allowed
-            # TODO: see if this gives issues when run on the Solo
-            # if so, only do this when simulating
+
             self.serversocket.settimeout(2.0)
 
             self.heartbeat_thread = HeartBeatThread(self.logger)
@@ -95,15 +100,21 @@ class Server():
 
 
 ## @ingroup Onboard
+# @brief This thread handles one request from the workstation and sends a response back to the workstation
+#
+# It is created by the Server class and passes the data to the control module
+# Then it waits for a response and sends it to the workstation
 class ControlThread (threading.Thread):
     def __init__(self, data, control_socket, client_socket, heartbeat_thread, logger):
         """
         Initiate the thread
 
-        @type control_socket: Socket
-        @type client_socket: Socket
-        @type heartbeat_thread: HeartBeatThread
-        @type logger: logging.Logger
+        Args:
+            data: the message to send to the control module
+            control_socket: Socket
+            client_socket: Socket
+            heartbeat_thread: HeartBeatThread instance
+            logger: logging.Logger instance
         """
         threading.Thread.__init__(self)
         self.data = data
@@ -164,10 +175,17 @@ class ControlThread (threading.Thread):
 
 
 ## @ingroup Onboard
+# @brief This thread sends regular heartbeats to the workstation containing information about the drone
+#
+# It is initiated by a ControlThread after a specific message with the settings of the workstation has been received
+# The heartbeats contain information like location of the drone and battery status
 class HeartBeatThread (threading.Thread):
     def __init__(self, logger):
         """
-        @type logger: logging.Logger
+        Initiate the thread
+
+        Args:
+            logger: logging.Logger instance
         """
         threading.Thread.__init__(self)
         self.quit = False
@@ -236,10 +254,21 @@ class HeartBeatThread (threading.Thread):
 
 
 ## @ingroup Onboard
+# @brief This thread broadcasts 'hello' messages until a response has been received
+#
+# This thread first waits for the ControlModule
+# The ControlModule can either successfully start of fail to start
+# In case of success, 'hello' messages will be sent, in the other case 'fail' messages will be sent
 class BroadcastThread(threading.Thread):
     def __init__(self, logger, drone_ip, SIM, commandPort):
         """
-        @type logger: logging.Logger
+        Initiate the thread
+
+        Args:
+            logger: logging.Logger instance
+            drone_ip: the IP address of the drone_ip
+            SIM: boolean, is this is a simulation or not
+            commandPort: on which port is the drone listening
         """
         threading.Thread.__init__(self)
         self.SIM = SIM
@@ -366,7 +395,7 @@ if __name__ == '__main__':
         argv = sys.argv[1:]  # only keep the actual arguments
         opts, args = getopt.getopt(argv, "l:t:f:sh", ["level=", "type=", "file=", "simulate", "help"])
     except getopt.GetoptError:
-        print_help()
+        print_help('server.py')
         sys.exit(-1)
     for opt, arg in opts:
         if opt in ("-l", "--level"):

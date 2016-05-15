@@ -18,16 +18,24 @@ from global_classes import MessageCodes, WayPointQueue, logformat, dateformat, p
 
 ## @ingroup Onboard
 # @brief The ControlModule class.
+#
+# The control module is responsible for handling requests from the workstation
+# It interacts with the drone via dronekit
+# There are 3 types of requests that should be handled:
+# Navigation messages will be handled by a NavigationHandler
+# Status messages will be handled by a StatusHandler
+# Settings messages will be handled by a SettingsHandler
 class ControlModule():
     def __init__(self, logger, log_level, SIM, log_type='console', filename=''):
         """
         Initiate the control module
 
-        @type logger: logging.Logger
-        @type SIM: bool
-
-        @param log_type: log to stdout ('console') or to a file ('file')
-        @param filename: the name of the file if log_type is 'file'
+        Args:
+            logger: logging.Logger instance
+            log_level: the level that should be used for logging, e.g. DEBUG
+            SIM: boolean, is this is a simulation or not
+            log_type: log to stdout ('console') or to a file ('file')
+            filename: the name of the file if log_type is 'file'
         """
         self.logger = logger
         self.log_level = log_level
@@ -190,7 +198,7 @@ if __name__ == '__main__':
         argv = sys.argv[1:]  # only keep the actual arguments
         opts, args = getopt.getopt(argv, "l:t:f:sh", ["level=", "type=", "file=", "simulate", "help"])
     except getopt.GetoptError:
-        print_help()
+        print_help('control_module.py')
         sys.exit(-1)
     for opt, arg in opts:
         if opt in ("-l", "--level"):
