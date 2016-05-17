@@ -28,29 +28,37 @@ class Server():
             logger: logging.Logger instance
             SIM: boolean, is this is a simulation or not
         """
+        ## boolean, is this is a simulation or not
         self.SIM = SIM
+        ## logger instance
         self.logger = logger
-        self.heartbeat_thread = None
 
         # Drone specific fields
         if SIM:
+            ## the IP address of the drone
             self.HOST = "127.0.0.1"
         else:
+            ## the IP address of the drone
             self.HOST = "10.1.1.10"
 
+        ## the port on which the drone will listen to requests
         self.PORT = 6330
+        ## boolean to indicate whether to stop the server or not
         self.quit = False
 
         self.serversocket = socket.socket(socket.AF_INET,      # Internet
                                           socket.SOCK_STREAM)  # TCP
         self.serversocket.setsockopt(socket.SOL_SOCKET, socket.SO_REUSEADDR, 1)
 
-        # handle signals to exit gracefully
+        ## handle signals to exit gracefully
         signal.signal(signal.SIGTERM, self.signal_handler)
+        ## handle signals to exit gracefully
         signal.signal(signal.SIGINT, self.signal_handler)
 
         # Initiate to None in order to be able to compare to None later
+        ## HeartBeatThread instance
         self.heartbeat_thread = None
+        ## BroadcastThread instance
         self.broadcast_thread = None
         try:
             self.serversocket.bind((self.HOST, self.PORT))
@@ -64,10 +72,12 @@ class Server():
             self.logger.debug("Could not bind to port: {0}, quitting".format(msg))
             self.close()
 
+    ## Intercept the signal that we should quit, so we can do it cleanly
     def signal_handler(self, signal, frame):
         self.close()
         self.logger.debug("exiting the process")
 
+    ## Run the server and create a ControlThread when receiving a request
     def run(self):
         self.broadcast_thread.start()
         while not self.quit:
@@ -117,11 +127,15 @@ class ControlThread (threading.Thread):
             logger: logging.Logger instance
         """
         threading.Thread.__init__(self)
+        ## The request from the workstation
         self.data = data
+        ## Socket to the control module
         self.control_socket = control_socket
+        ## Socket to the workstation
         self.client_socket = client_socket
-
+        ## HeartBeatThread instance
         self.heartbeat_thread = heartbeat_thread
+        ## logger instance
         self.logger = logger
 
     def run(self):
@@ -188,10 +202,13 @@ class HeartBeatThread (threading.Thread):
             logger: logging.Logger instance
         """
         threading.Thread.__init__(self)
+        ## boolean to indicate whether to stop the thread or not
         self.quit = False
-        self.pause = False
+        ## the IP address of the workstation
         self.workstation_ip = None
+        ## the port where the workstation listens for heartbeats
         self.workstation_port = None
+        ## logger instance
         self.logger = logger
 
     def run(self):
@@ -238,16 +255,15 @@ class HeartBeatThread (threading.Thread):
             except socket.error, msg:
                 self.logger.debug("socket error: {0}".format(msg))
 
-            while self.pause:
-                time.sleep(2)
-
             # sleep 500ms before requesting another heartbeat
             time.sleep(1)
 
+    ## method to configure the heartbeat thread with workstation information
     def configure(self, host, port):
         self.workstation_ip = host
         self.workstation_port = port
 
+    ## stop sending heartbeats
     def stop_thread(self):
         self.logger.info("stopping the heartbeat-thread")
         self.quit = True
@@ -271,25 +287,41 @@ class BroadcastThread(threading.Thread):
             commandPort: on which port is the drone listening
         """
         threading.Thread.__init__(self)
+        ## boolean, is this is a simulation or not
         self.SIM = SIM
+        ## logger instance
         self.logger = logger
+        ## the port on which the drone will listen to requests
         self.commandPort = commandPort
+        ## the port with which the workstation needs to connect in order to be able to receive the stream
         self.streamPort = 5502
+        ## how wide the camera of the drone is able to see
         self.visionWidth = 0.0001
+        ## the port on which the workstation listens for 'hello' messages
         self.helloPort = 4849
+        ## the IP address of the drone
         self.HOST = drone_ip
 
         # Drone specific fields
         if SIM:
-            self.broadcast_address = self.HOST
+            ## the IP address of the controller of the drone
             self.controllerIp = self.HOST
+            ## the address to broadcast the 'hello' message to
+            self.broadcast_address = self.HOST
+            ## how the workstation should receive the stream from the drone
             self.streamFile = "rtp://127.0.0.1:5000"
         else:
+            ## the IP address of the controller of the drone
             self.controllerIp = "10.1.1.1"
+            ## the address to broadcast the 'hello' message to
             self.broadcast_address = "10.1.1.255"
+            ## how the workstation should receive the stream from the drone
             self.streamFile = "sololink.sdp"
+
+        ## boolean to indicate whether to stop the thread or not
         self.quit = False
 
+    ## wait for the control module, then start broadcasting the correct message
     def run(self):
         rdy = self.wait_for_control_module()
         if rdy:
@@ -298,6 +330,10 @@ class BroadcastThread(threading.Thread):
             self.broadcast_fail_message()
         return
 
+    ## wait until the control module is ready
+    #
+    # When the control module is ready, it will change the modification time of a file.
+    # Here we poll these files until one is modified.
     def wait_for_control_module(self):
         home_dir = os.path.expanduser('~')
         cm_rdy = os.path.join(home_dir, '.shae', 'cm_ready')
@@ -319,6 +355,7 @@ class BroadcastThread(threading.Thread):
                     return False
             time.sleep(2)
 
+    ## start broadcasting hello messages
     def broadcast_hello_message(self):
         hello = {"message_type": "hello",
                  "ip_drone": self.HOST,
@@ -350,6 +387,7 @@ class BroadcastThread(threading.Thread):
             except socket.timeout:
                 pass
 
+    ## start broadcasting fail messages
     def broadcast_fail_message(self):
         fail = {"message_type": "fail",
                 "ip_drone": self.HOST,
@@ -379,6 +417,7 @@ class BroadcastThread(threading.Thread):
             except socket.timeout:
                 pass
 
+    ## stop the broadcast thread
     def stop_thread(self):
         if not self.quit:
             self.logger.info("stopping the broadcast-thread")
