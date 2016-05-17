@@ -22,13 +22,19 @@ class NavigationHandler():
             log_type: log to stdout ('console') or to a file ('file')
             filename: the name of the file if log_type is 'file'
         """
+        ## The entire request from the workstation
         self.packet = None
+        ## Message component from the request
         self.message = None
+        ## Solo instance
         self.solo = solo
+        ## WayPointQueue instance
         self.waypoint_queue = queue
+        ## NavigationThread instance
         self.navigation_thread = navigation_thread
 
         # set up logging
+        ## logger instance
         self.logger = logging.getLogger("Navigation Handler")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
         if log_type == 'console':
@@ -126,12 +132,17 @@ class NavigationThread (threading.Thread):
             filename: the name of the file if log_type is 'file'
         """
         threading.Thread.__init__(self)
+        ## Solo instance
         self.solo = solo
+        ## WayPointQueue instance
         self.waypoint_queue = waypoint_queue
+        ## boolean to indicate whether to stop the server or not
         self.quit = False
+        ## boolean to indicate whether the solo should return to his home location
         self.rth = False
 
         # set up logging
+        ## logger instance
         self.logger = logging.getLogger("Navigation Thread")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
         if log_type == 'console':
@@ -143,6 +154,7 @@ class NavigationThread (threading.Thread):
         self.logger.addHandler(handler)
         self.logger.setLevel(logging_level)
 
+    ## run the NavigationThread and start visiting waypoints
     def run(self):
         while not self.quit:
             if self.waypoint_queue.is_empty():
@@ -162,12 +174,14 @@ class NavigationThread (threading.Thread):
             self.solo.visit_waypoint(home)
             self.solo.land()
 
+    ## Return to drone to his home location
     def return_to_home(self):
         self.logger.debug("returning to home")
         self.solo.halt()
         self.quit = True
         self.rth = True
 
+    ## Stop the NavigationThread
     def stop_thread(self):
         self.logger.info("stopping the navigation-thread")
         self.solo.halt()

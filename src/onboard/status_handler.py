@@ -22,12 +22,17 @@ class StatusHandler():
             log_type: log to stdout ('console') or to a file ('file')
             filename: the name of the file if log_type is 'file'
         """
+        ## The entire request from the workstation
         self.packet = None
+        ## Message component from the request
         self.message = None
+        ## Solo instance
         self.solo = solo
+        ## WayPointQueue instance
         self.waypoint_queue = queue
 
         # set up logging
+        ## logger instance
         self.stat_logger = logging.getLogger("Status Handler")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
         if log_type == 'console':

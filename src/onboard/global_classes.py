@@ -30,6 +30,7 @@ def print_help(filename):
 
 ## @ingroup Global_classes
 # @brief Codes to tell the workstation what to expect
+#
 # When sending a message to the workstation, the message will be preceded by one of these codes
 class MessageCodes():
     ACK = 200
@@ -41,6 +42,7 @@ class MessageCodes():
 
 ## @ingroup Global_classes
 # @brief The type of drone the onboard code is written for
+#
 # This can be used to let the workstation know what type of drone it's dealing with
 class DroneType():
     def __init__(self, manufacturer, model):
@@ -75,6 +77,7 @@ class LocationEncoder(JSONEncoder):
 
 ## @ingroup Global_classes
 # @brief Combines a location with an order
+#
 # These are objects the drone will fly to, in order
 class WayPoint():
     def __init__(self, location, order):
@@ -99,7 +102,8 @@ class WayPointEncoder(JSONEncoder):
 
 ## @ingroup Global_classes
 # @brief Class to hold a series of object from the WayPoint class
-# This class holds a lock in order to provide some protection against concurrent modification
+#
+# This class holds a lock in order to provide some protection against concurrent modification.
 # Also provides functionality to sort Waypoints based on their order
 class WayPointQueue():
     def __init__(self):

@@ -11,6 +11,9 @@ from global_classes import Location, WayPoint, WayPointEncoder, DroneType, logfo
 
 
 ## @ingroup Onboard
+#
+# The Solo class is a wrapper around DroneKit functionality that can also be used by drones other than the Solo.
+# The most important functions are 'arm', 'takeoff', 'land' and 'visit_waypoint'.
 class Solo:
     def __init__(self, vehicle, height=4, speed=5, update_rate=15, logging_level=logging.CRITICAL, log_type='console', filename=''):
         """
@@ -23,12 +26,16 @@ class Solo:
             log_type: log to stdout ('console') or to a file ('file')
             filename: the name of the file if log_type is 'file'
         """
+        ## a DroneKit vehicle, that will be used to control the drone
         self.vehicle = vehicle
+        ## a lock to guarantee that no threads ask the drone for e.g. his location, while a takeoff is taking place
         self.solo_lock = RLock()  # make sure that only 1 thread can access the vehicle at the same time
-        self.is_halted = False  # when this becomes 'True', the solo should stop visiting waypoints
+        ## a boolean, when this becomes 'True', the solo should stop visiting waypoints
+        self.is_halted = False
 
         # When you want to receive GoPro messages, this will have to be uncommented
         # However, using it might insert some instabilities
+
         # self.goproManager = GoProManager(logging_level=logging_level, log_type=log_type, filename=filename)
         # self.vehicle.add_attribute_listener('gopro_status', self.goproManager.state_callback)
         # self.vehicle.add_attribute_listener(attr_name='GOPRO_GET_RESPONSE', observer=self.goproManager.get_response_callback)
@@ -40,16 +47,24 @@ class Solo:
         self.last_send_move = 0
         self.last_send_translate = 0
 
+        ## how close should the drone get to its WayPoint before it is considered "reached"
         self.distance_threshold = 1.0
         self.update_rate = update_rate  # this attribute is not used by any of the functions used in Project Shae
+        ## the height that the drone should fly on
         self.height = height
+        ## the flying speed on the drone
         self.speed = speed
+        ## the amount of frames per second the camera uses
         self.camera_fps = None
+        ## the resolution of the camera
         self.camera_resolution = None
+        ## angle of the camera
         self.camera_angle = None
+        ## the DroneType of the drone that is used
         self.drone_type = DroneType('3DR', 'Solo')
 
         # set up self.logger
+        ## logger instance
         self.logger = logging.getLogger("Solo")
         formatter = logging.Formatter(logformat, datefmt=dateformat)
         if log_type == 'console':
@@ -63,6 +78,7 @@ class Solo:
 
         return
 
+    ## arm the solo, making it available for automatic takeoff and flight
     def arm(self):
         self.solo_lock.acquire()
         self.vehicle.mode = VehicleMode("GUIDED")
@@ -78,7 +94,7 @@ class Solo:
             self.logger.info("the solo is now armed")
         self.solo_lock.release()
 
-    # takeoff - takeoff to some altitude, needs armed status - params: meters
+    ## Launch the drone to predefined height, the drone has to be armed on beforehand
     def takeoff(self):
         self.solo_lock.acquire()
         if self.vehicle.mode != 'GUIDED':
@@ -119,12 +135,13 @@ class Solo:
         self.solo_lock.release()
         return -1
 
+    ## Stop the drone from visiting waypoints, this does not land the drone
     def halt(self):
         self.solo_lock.acquire()
         self.is_halted = True
         self.solo_lock.release()
 
-    # brake - Stop the solo moving
+    # Stop the drone from moving, this does not land the drone
     def brake(self):
         self.solo_lock.acquire()
         mode = self.vehicle.mode
@@ -134,7 +151,7 @@ class Solo:
         self.vehicle.mode = mode
         self.solo_lock.release()
 
-    # land - Land the solo moving
+    # Land the drone
     def land(self):
         self.solo_lock.acquire()
         self.vehicle.mode = VehicleMode("LAND")
@@ -174,7 +191,7 @@ class Solo:
                     self.is_halted = False  # reset the self.is_halted attribute
                 return
 
-    # point - Point the copter in a direction
+    ## Point the copter in a direction
     def point(self, degrees, relative=True):
         """
         This won't be used in this project, but might prove useful for future uses

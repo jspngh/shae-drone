@@ -37,11 +37,15 @@ class ControlModule():
             log_type: log to stdout ('console') or to a file ('file')
             filename: the name of the file if log_type is 'file'
         """
+        ## logger instance
         self.logger = logger
+        ## log_level: the level that should be used for logging
         self.log_level = log_level
+        ## boolean to indicate whether to stop the server or not
         self.quit = False
-
+        ## keep track if we are connected with DroneKit
         connection_succeeded = False
+        ## how many time have we tried connecting with DroneKit
         attemps = 1
         while not connection_succeeded:
             try:
@@ -64,15 +68,21 @@ class ControlModule():
 
         # handle signals to exit gracefully
         signal.signal(signal.SIGTERM, self.signal_handler)
+        # handle signals to exit gracefully
         signal.signal(signal.SIGINT, self.signal_handler)
 
         # Initiate to None in order to be able to compare to None later
+        ## NavigationThread instance
         self.nav_thread = None
+        ## NavigationHandler instance
         self.nav_handler = None
+        ## StatusHandler instance
         self.stat_handler = None
+        ## SettingsHandler instance
         self.setting_handler = None
-
-        self.waypoint_queue = WayPointQueue()  # in this queue, the waypoints the drone has to visit will come
+        ## WayPointQueue instance. Here the waypoints the drone has to visit will come
+        self.waypoint_queue = WayPointQueue()
+        ## socket that will listen to connections from the Server
         self.unix_socket = socket.socket(socket.AF_UNIX,      # Unix Domain Socket
                                          socket.SOCK_STREAM)  # TCP
         try:
@@ -82,8 +92,6 @@ class ControlModule():
         try:
             self.unix_socket.bind("/tmp/uds_control")
             self.unix_socket.listen(2)
-            # TODO: see if this gives issues when run on the Solo
-            # if so, only do this when simulating
             self.unix_socket.settimeout(2.0)
 
             self.nav_thread = NavigationThread(solo=self.solo, waypoint_queue=self.waypoint_queue, logging_level=self.log_level, log_type=log_type, filename=filename)
@@ -99,10 +107,12 @@ class ControlModule():
 
         self.signal_ready()
 
+    ## Intercept the signal that we should quit, so we can do it cleanly
     def signal_handler(self, signal, frame):
         self.close()
         self.logger.debug("exiting the process")
 
+    ## Run the ControlModule and pass the request to the correct handler
     def run(self):
         while not self.quit:
             try:
@@ -162,6 +172,7 @@ class ControlModule():
 
         self.unix_socket.close()
 
+    ## close the control module and the navigation thread
     def close(self):
         if not self.quit:
             self.logger.info("the control module is exiting")
@@ -171,6 +182,7 @@ class ControlModule():
             self.logger.debug("closing dronekit vehicle")
             self.vehicle.close()
 
+    ## signal the server that we are ready to receive requests
     def signal_ready(self):
         home_dir = os.path.expanduser('~')
         if not os.path.exists(os.path.join(home_dir, '.shae')):
@@ -179,6 +191,7 @@ class ControlModule():
         with open(cm_rdy, 'a'):
             os.utime(cm_rdy, None)
 
+    ## signal the server that initiation failed
     def signal_fail(self):
         home_dir = os.path.expanduser('~')
         if not os.path.exists(os.path.join(home_dir, '.shae')):
