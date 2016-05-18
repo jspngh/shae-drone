@@ -372,9 +372,9 @@ class Solo:
         return att.yaw
 
     def get_camera_angle(self):
-        self.solo_lock.acquire()
-        angle = self.vehicle.gimbal.pitch()
-        self.solo_lock.release()
+         # self.solo_lock.acquire()
+         # angle = self.vehicle.gimbal.pitch()
+         # self.solo_lock.release()
         return angle
 
     def set_camera_angle(self, angle):
@@ -382,7 +382,7 @@ class Solo:
         Args:
             angle: desired angle of the camera: 0 = ahead, 90 = down
         """
-        self.control_gimbal(-angle)
+         # self.control_gimbal(-angle)
         return
 
     def get_camera_fps(self):
